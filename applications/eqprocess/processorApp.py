@@ -41,20 +41,20 @@ trimTab = dbc.Card(
         [
             dbc.Label("Trim Range", className="mb-2 mt-1 mx-1"),
             dmc.RangeSlider(
-                        id = "trimRangeInput",
-                        value=[0, 500],
-                        marks=[
-                            {"value": 0, "label": "0"},
-                            {"value": 500, "label": "500"}
-                        ],
-                        min=0.0,
-                        max=500.0,
-                        step=0.1,
-                        minRange=0.5,
-                        precision=2,
-                        showLabelOnHover=True,
-                        className="mt-2 mb-4"
-                    ),
+                id="trimRangeInput",
+                value=[0, 500],
+                marks=[
+                    {"value": 0, "label": "0"},
+                    {"value": 500, "label": "500"}
+                ],
+                min=0.0,
+                max=500.0,
+                step=0.1,
+                minRange=0.5,
+                precision=2,
+                showLabelOnHover=True,
+                className="mt-2 mb-4"
+            ),
             dbc.Button("Apply Trim", id="applyTrim", color="primary", className="mt-2"),
             dbc.Button("Reset", id="resetTrim", color="info", outline=True, className="mt-2 mx-2", style={'display': 'none'}),
         ]
@@ -67,10 +67,10 @@ detrendTab = dbc.Card(
     dbc.CardBody(
         [
             dbc.Label("Detrend Method", className="mb-2 mt-1 mx-1"),
-            dcc.Dropdown(id='detrendInput', options = ['Linear', 'Polynomial'], value = 'Linear', clearable=False, className="mb-2 mt-1 text-black"),
+            dcc.Dropdown(id='detrendInput', options=['Linear', 'Polynomial'], value='Linear', clearable=False, className="mb-2 mt-1 text-black"),
             dbc.Label("Order", className="mb-1 mt-1 mx-1", style={'display': 'none'}),
             dbc.Label("Order", id="orderLabel", className="mb-2 mt-1 mx-1", style={'display': 'none'}),
-            dbc.Input(type = "number", id='orderInput', value=1, className="mb-2 mt-1", style={'display': 'none'}),
+            dbc.Input(type="number", id='orderInput', value=1, className="mb-2 mt-1", style={'display': 'none'}),
             dbc.Button("Apply Detrend", id="applyDetrend", color="primary", className="mt-2"),
         ]
     ),
@@ -82,19 +82,19 @@ filterTab = dbc.Card(
     dbc.CardBody(
         [
             dbc.Label("Filter Method", className="mb-2 mx-1"),
-            dcc.Dropdown(id='filterMethodInput', options = ['Band-Pass', 'High-Pass', 'Low-Pass'], value = 'Band-Pass', clearable=False, className="mb-2 mt-1 text-black"),
+            dcc.Dropdown(id='filterMethodInput', options=['Band-Pass', 'High-Pass', 'Low-Pass'], value='Band-Pass', clearable=False, className="mb-2 mt-1 text-black"),
             dbc.Row([
                 dbc.Col([
                     dbc.Label("Low-Pass Corner", id="lowPassLabel", className="mb-2 mt-1 mx-1", style={'display': 'block'}),
                     dbc.Input(type="number", id='lowPassInput', value=0.5, className="mb-2 mt-1", style={'display': 'block'}),
-                ], width=6),
+                ], xs=12, sm=12, md=6),
                 dbc.Col([
                     dbc.Label("High-Pass Corner", id="highPassLabel", className="mb-2 mt-1 mx-1", style={'display': 'block'}),
                     dbc.Input(type="number", id='highPassInput', value=25.0, className="mb-2 mt-1", style={'display': 'block'}),
-                ], width=6),
+                ], xs=12, sm=12, md=6),
             ], className="mb-1"),
             dbc.Label("Order", id="filterOrderLabel", className="mb-2 mt-1 mx-1"),
-            dbc.Input(type = "number", id='filterOrderInput', value=4, className="mb-2 mt-1"),
+            dbc.Input(type="number", id='filterOrderInput', value=4, className="mb-2 mt-1"),
             dbc.Button("Apply Filter", id="applyFilter", color="primary", className="mt-2"),
         ]
     ),
@@ -109,12 +109,12 @@ signalFig.update_xaxes(
 signalFig.update_yaxes(
     title_text="Acceleration",
     zeroline=True,
-    zerolinewidth= 3
+    zerolinewidth=3
 )
 signalFig.update_layout(
-    template = "plotly_white",
-    paper_bgcolor = "white",
-    plot_bgcolor = "white", 
+    template="plotly_white",
+    paper_bgcolor="white",
+    plot_bgcolor="white",
 )
 
 processArea = html.Div(
@@ -123,156 +123,153 @@ processArea = html.Div(
         dbc.Col([
             dbc.Card(
                 html.Div(
-                        children = [
-                            dbc.Tabs(
-                                [
-                                    dbc.Tab(trimTab, label="Trim"),
-                                    dbc.Tab(detrendTab, label="Detrend"),
-                                    dbc.Tab(filterTab, label="Filter"),
-                                ],
-                                className='nav-fill w-100'
-                            ),
-                        ], className="inputArea mx-2 mb-2 mt-1"),
+                    children=[
+                        dbc.Tabs(
+                            [
+                                dbc.Tab(trimTab, label="Trim"),
+                                dbc.Tab(detrendTab, label="Detrend"),
+                                dbc.Tab(filterTab, label="Filter"),
+                            ],
+                            className='nav-fill w-100'
+                        ),
+                    ], className="inputArea mx-2 mb-2 mt-1"),
                 className="inputForm mx-2 mt-5 mb-4"),
             dbc.Button("Export Acceleration to Excel", id="exportAccButton", color="info", outline=True, className="mt-1 mx-2"),
-        ], width=4),
+        ], xs=12, sm=12, md=4),
         
         # graph col
         dbc.Col([
             dbc.Row([
                 html.Div(dcc.Graph(figure=signalFig, id="signalFig"))
-                ]),
+            ]),
             dbc.Row([
                 html.Div(id='outputTable')
             ])
-        ], width=8)
+        ], xs=12, sm=12, md=8)
     ], className="")
 )
 
+# Response Spectrum figure
 defaultResponseFig = go.Figure()
 defaultResponseFig.update_layout(
-    title = 'Response Spectrum', title_x=0.5,
-    template = "plotly_white",
-    paper_bgcolor = "white",
-    plot_bgcolor = "white", 
+    title='Response Spectrum', title_x=0.5,
+    template="plotly_white",
+    paper_bgcolor="white",
+    plot_bgcolor="white",
 )
 defaultResponseFig.update_xaxes(
-    rangemode =  'tozero',
-    title_text = 'Time (s)'
+    rangemode='tozero',
+    title_text='Time (s)'
 )
 defaultResponseFig.update_yaxes(
-    rangemode =  'tozero',
-    title_text = 'Sa (g)'
+    rangemode='tozero',
+    title_text='Sa (g)'
 )
 
-# set the processing area
+# Response Spectrum area
 responseArea = html.Div(
     dbc.Row([
-        # input col
         dbc.Col([
             dbc.Card(
                 html.Div(
-                        children = [
-                            dbc.Label("Damping Ratio (%)", id="dampingLabel", className="mb-2 mt-1 mx-1"),
-                            dbc.Input(type = "number", id='dampingRatioInput', value=5, className="mb-2 mt-1"),
-                            dbc.Button("Create Response Spectrum", id="createResponse", color="primary", className="mt-2 w-100"),
-                        ], className="inputArea mx-2 mb-2 mt-1"),
+                    children=[
+                        dbc.Label("Damping Ratio (%)", id="dampingLabel", className="mb-2 mt-1 mx-1"),
+                        dbc.Input(type="number", id='dampingRatioInput', value=5, className="mb-2 mt-1"),
+                        dbc.Button("Create Response Spectrum", id="createResponse", color="primary", className="mt-2 w-100"),
+                    ], className="inputArea mx-2 mb-2 mt-1"),
                 className="inputForm mx-2 mt-5 mb-4"),
             dbc.Button("Export Response to Excel", id="exportResponseButton", color="info", outline=True, className="mt-1 mx-2"),
-        ], width=3),
+        ], xs=12, sm=12, md=3),
         
-        # graph col
         dbc.Col([
             dbc.Row([
                 html.Div(dcc.Graph(figure=defaultResponseFig, id="defaultResponseFig"))
-                ]),
-        ], width=9)
+            ]),
+        ], xs=12, sm=12, md=9)
     ], className="")
 )
 
-# create arias intensity figure
+# Arias Intensity figure
 defaultAriasFigure = go.Figure()
 defaultAriasFigure.update_layout(
-    title = 'Arias Intensity', title_x=0.5,
-    template = "plotly_white",
-    paper_bgcolor = "white",
-    plot_bgcolor = "white", 
+    title='Arias Intensity', title_x=0.5,
+    template="plotly_white",
+    paper_bgcolor="white",
+    plot_bgcolor="white",
 )
 defaultAriasFigure.update_xaxes(
-    rangemode =  'tozero',
-    title_text = 'Time (s)'
+    rangemode='tozero',
+    title_text='Time (s)'
 )
 defaultAriasFigure.update_yaxes(
-    rangemode =  'tozero',
-    title_text = 'Arias Intensity - Raw'
+    rangemode='tozero',
+    title_text='Arias Intensity - Raw'
 )
 
+# Arias Intensity area
 ariasArea = html.Div(
     dbc.Row([
-        # input col
         dbc.Col([
             dbc.Card(
                 html.Div(
-                        children = [
-                            dbc.Button("Create Arias Intensity", id="createArias", color="primary", className="mt-2 w-100"),
-                        ], className="inputArea mx-2 mb-2 mt-1"),
+                    children=[
+                        dbc.Button("Create Arias Intensity", id="createArias", color="primary", className="mt-2 w-100"),
+                    ], className="inputArea mx-2 mb-2 mt-1"),
                 className="inputForm mx-2 mt-5 mb-4"),
-        ], width=3),
+        ], xs=12, sm=12, md=3),
         
-        # graph col
         dbc.Col([
             dbc.Row([
                 html.Div(dcc.Graph(figure=defaultAriasFigure, id="defaultAriasFigure"))
-                ]),
-        ], width=9)
+            ]),
+        ], xs=12, sm=12, md=9)
     ], className="")
 )
 
-# create arias intensity figure
+# Fourier Transform figure
 defaultFourierFig = go.Figure()
 defaultFourierFig.update_layout(
-    title = 'Fourier Transform', title_x=0.5,
-    template = "plotly_white",
-    paper_bgcolor = "white",
-    plot_bgcolor = "white", 
-    xaxis_type = 'log',
-    yaxis_type = 'log'
+    title='Fourier Transform', title_x=0.5,
+    template="plotly_white",
+    paper_bgcolor="white",
+    plot_bgcolor="white",
+    xaxis_type='log',
+    yaxis_type='log'
 )
 defaultFourierFig.update_xaxes(
-    rangemode =  'tozero',
-    title_text = 'Frequency (Hz)'
+    rangemode='tozero',
+    title_text='Frequency (Hz)'
 )
 defaultFourierFig.update_yaxes(
-    rangemode =  'tozero',
-    title_text = 'Fourier Amplitude'
+    rangemode='tozero',
+    title_text='Fourier Amplitude'
 )
 
+# Fourier Transform area
 fourierArea = html.Div(
     dbc.Row([
-        # input col
         dbc.Col([
             dbc.Card(
                 html.Div(
-                        children = [
-                            dbc.Button("Create Fourier Transform", id="createFourier", color="primary", className="mt-2 w-100"),
-                        ], className="inputArea mx-2 mb-2 mt-1"),
+                    children=[
+                        dbc.Button("Create Fourier Transform", id="createFourier", color="primary", className="mt-2 w-100"),
+                    ], className="inputArea mx-2 mb-2 mt-1"),
                 className="inputForm mx-2 mt-5 mb-4"),
-        ], width=3),
+        ], xs=12, sm=12, md=3),
         
-        # graph col
         dbc.Col([
             dbc.Row([
                 html.Div(dcc.Graph(figure=defaultFourierFig, id="defaultFourierFig"))
-                ]),
-        ], width=9)
+            ]),
+        ], xs=12, sm=12, md=9)
     ], className="")
 )
 
+# Metadata area
 metaDict = {
     'col_1': ['Location', 'Date'],
     'col_2': ['No Data', 'No Data'],
 }
-
 defaultMetadata = pd.DataFrame(metaDict)
 
 def generate_table(df):
@@ -290,25 +287,24 @@ def generate_table(df):
 
 metadataArea = html.Div(
     dbc.Row([
-        # input col
         dbc.Col([
             dbc.Card(
                 html.Div(
-                        children = [
-                            dbc.Button("Get Metadata", id="getMetadata", color="primary", className="mt-2 w-100"),
-                        ], className="inputArea mx-2 mb-2 mt-1"),
+                    children=[
+                        dbc.Button("Get Metadata", id="getMetadata", color="primary", className="mt-2 w-100"),
+                    ], className="inputArea mx-2 mb-2 mt-1"),
                 className="inputForm mx-2 mt-5 mb-4")
-        ], width=3),
+        ], xs=12, sm=12, md=3),
         
-        # graph col
         dbc.Col([
             dbc.Row([
                 html.Div([generate_table(defaultMetadata)], id="metadataTable", className="mt-5")
-                ]),
-        ], width=9)
+            ]),
+        ], xs=12, sm=12, md=9)
     ], className="")
 )
 
+# Analysis area
 data = [["response", "Response Spectrum"], ["arias", "Arias Intensity"], ["fourier", "Fourier Transform"], ["meta", "Metadata"]]
 analysisArea = html.Div(
     [
@@ -341,17 +337,17 @@ analysisDiv = dmc.MantineProvider(
 
 operationsArea = html.Div([
     dbc.Container(
-            dbc.Row(
-                [
-                    dbc.Col(html.Div(), width=1, className='h-100'),
-                    dbc.Col(html.Div([dataImporter, uploadedFile, processArea, analysisDiv], className='h-100'), width=10),
-                    dbc.Col(html.Div(), width=1, className='h-100'),
-                ],
-                className='h-100'
-            ),
-            fluid=True,
+        dbc.Row(
+            [
+                dbc.Col(html.Div(), width=12, md=1, className='h-100'),
+                dbc.Col(html.Div([dataImporter, uploadedFile, processArea, analysisDiv], className='h-100'), width=12, md=10),
+                dbc.Col(html.Div(), width=12, md=1, className='h-100'),
+            ],
             className='h-100'
-        )
+        ),
+        fluid=True,
+        className='h-100'
+    )
 ])
 
 def layout():
@@ -377,12 +373,12 @@ def filenameOutput(contents, filename):
     
     if any(filename.endswith(ext) for ext in ['asc', 'AT2']):
         return html.Div([
-            f"✅ File succesfully uploaded: {filename}"
-        ], className="mt-4"), contents
+            dbc.Alert(f"✅ File successfully uploaded: {filename}", color="light", className="mt-4")
+        ]), contents
     else:
         return html.Div([
-            "❗File format is not supported. Supported formats: AT2, ASC"
-        ], className="mt-4"), contents
+            dbc.Alert("❗File format is not supported. Supported formats: AT2, ASC", color="danger", className="mt-4")
+        ]), contents
 
 # visualize the uploaded data
 @callback(

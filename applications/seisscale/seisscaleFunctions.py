@@ -69,7 +69,7 @@ def targetSpectrum(Ss, S1, soil):
     TB = SD1 / SDs
     TL = 6
     
-    x_spectra = pd.read_csv("assets/data/spectral_x.csv")
+    x_spectra = pd.read_csv("applications/seisscale/data/spectral_x.csv")
     cols = x_spectra.columns.tolist()
     t = []
 
@@ -129,7 +129,7 @@ def recordSelection(magnitude_range: str = '4 9',
         pulse (int): Pulse [Pulse‐like (1)] or Non-pulse [non‐pulse‐like (0)] or Any[any (2)] indicator
     """
     # Read the Meta Data
-    eqe_df = pd.read_csv("assets/data/meta_data-R1.csv")
+    eqe_df = pd.read_csv("applications/seisscale/data/meta_data-R1.csv")
 
     # Split Inputs
     min_m, max_m = [float(x) for x in magnitude_range.split()]
@@ -189,8 +189,8 @@ def recordSelection(magnitude_range: str = '4 9',
     rsn_selected = eqe_s_filtered['RecordSequenceNumber'].tolist()
 
     # Read Spectral Data
-    spectral_data_x = pd.read_csv("assets/data/spectral_x.csv")
-    spectral_data_y = pd.read_csv("assets/data/spectral_y.csv")
+    spectral_data_x = pd.read_csv("applications/seisscale/data/spectral_x.csv")
+    spectral_data_y = pd.read_csv("applications/seisscale/data/spectral_y.csv")
 
     spectra_selected_x = spectral_data_x.loc[spectral_data_x['RSN'].isin(rsn_selected)]
     spectra_selected_y = spectral_data_y.loc[spectral_data_y['RSN'].isin(rsn_selected)]
@@ -262,10 +262,10 @@ def recordSelection(magnitude_range: str = '4 9',
 
 def amplitudeScaling(key_list, target , period, targetShift, period_range_min, period_range_max, components = 'srss'):
 
-    eqe_df = pd.read_csv("assets/data/meta_data-R1.csv")
+    eqe_df = pd.read_csv("applications/seisscale/data/meta_data-R1.csv")
 
-    spectral_data_x = pd.read_csv("assets/data/spectral_x.csv")
-    spectral_data_y = pd.read_csv("assets/data/spectral_y.csv")
+    spectral_data_x = pd.read_csv("applications/seisscale/data/spectral_x.csv")
+    spectral_data_y = pd.read_csv("applications/seisscale/data/spectral_y.csv")
 
     selected_x = spectral_data_x.loc[spectral_data_x['RSN'].isin(key_list)]
     selected_y = spectral_data_y.loc[spectral_data_y['RSN'].isin(key_list)]
