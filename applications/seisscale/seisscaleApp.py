@@ -36,9 +36,9 @@ defaultFig.update_yaxes(
 
 defaultFig.update_layout(
     showlegend=True, 
-    template = "plotly_white",
-    paper_bgcolor = "white",
-    plot_bgcolor = "white", 
+    template="plotly_white",
+    paper_bgcolor="white",
+    plot_bgcolor="white", 
     height=580, 
     title_text='No Data', 
     title_x=0.5, 
@@ -52,25 +52,25 @@ defaultFig.update_layout(
 # tbec input area
 tbecInputArea = html.Div([
     dbc.Label("Spectral Acceleration at Short Periods (Ss)", className="mb-1 mt-1 mx-1"),
-    dbc.Input(type = "number", id='ssInput', value=1.20, className="mb-2 mt-1"),
+    dbc.Input(type="number", id='ssInput', value=1.20, className="mb-2 mt-1"),
     dbc.Label("Spectral Acceleration at 1 sec (S1)", className="mb-1 mt-1 mx-1"),
-    dbc.Input(type = "number", id='s1Input', value=0.25, className="mb-2 mt-1"),
+    dbc.Input(type="number", id='s1Input', value=0.25, className="mb-2 mt-1"),
     dbc.Label("Soil Type", className="mb-1 mt-1 mx-1"),
-    dcc.Dropdown(id = 'soilTypeInput', options = ['ZA', 'ZB', 'ZC', 'ZD', 'ZE'], value = 'ZC',  clearable=False, className="mb-2 mt-1 text-black"),
+    dcc.Dropdown(id='soilTypeInput', options=['ZA', 'ZB', 'ZC', 'ZD', 'ZE'], value='ZC', clearable=False, className="mb-2 mt-1 text-black"),
 ], style={'display': 'block'}, id='tbecInputArea')
 
 # asce input area
 asceInputArea = html.Div([
     dbc.Label("Spectrum Type", className="mb-1 mt-1 mx-1"),
     dcc.Dropdown(id='spectrumTypeInput', 
-                options = ['Multi Period Design Spectrum', 'Multi Period MCEr Design Spectrum', 'Two Period Design Spectrum', 'Two Period MCEr Design Spectrum'], 
-                value = 'Multi Period Design Spectrum', clearable=False, className="mb-2 mt-1 text-black"),
+                options=['Multi Period Design Spectrum', 'Multi Period MCEr Design Spectrum', 'Two Period Design Spectrum', 'Two Period MCEr Design Spectrum'], 
+                value='Multi Period Design Spectrum', clearable=False, className="mb-2 mt-1 text-black"),
     dbc.Label("Latitude", className="mb-1 mt-1 mx-1"),
-    dbc.Input(type = "number", id='latitudeInput', value=32.23, className="mb-2 mt-1"),
+    dbc.Input(type="number", id='latitudeInput', value=32.23, className="mb-2 mt-1"),
     dbc.Label("Longitude", className="mb-1 mt-1 mx-1"),
-    dbc.Input(type = "number", id='longitudeInput', value=-94.49, className="mb-2 mt-1"),
+    dbc.Input(type="number", id='longitudeInput', value=-94.49, className="mb-2 mt-1"),
     dbc.Label("Site Category", className="mb-1 mt-1 mx-1"),
-    dcc.Dropdown(id='asceSiteCategoryInput', options = ['A', 'B', 'C', 'D', 'E'], value = 'C', clearable=False, className="mb-2 mt-1 text-black"),
+    dcc.Dropdown(id='asceSiteCategoryInput', options=['A', 'B', 'C', 'D', 'E'], value='C', clearable=False, className="mb-2 mt-1 text-black"),
 ], style={'display': 'none'}, id='asceInputArea')
 
 # user-defined input area
@@ -84,14 +84,14 @@ userDefinedInputArea = html.Div([
         children=html.Button('Upload CSV File', className='btn btn-secondary w-100'),
         multiple=False
     ),
-    dmc.Text(id = 'uploadStatus', children=['No file has been uploaded.'], className="mt-2")
+    dmc.Text(id='uploadStatus', children=['No file has been uploaded.'], className="mt-2")
 ], style={'display': 'none'}, id='userInputArea')
 
 # response input
 responseTypeInput = html.Div([
     dbc.Label("Spectrum Definition", className="mb-1 mt-3 mx-2"),
-    dcc.Dropdown(id="spectrumDefinitionInput", options = ['TBEC-2018', 'ASCE7-22', 'User-Defined'], value = 'TBEC-2018', clearable=False, className="mb-3 mt-2 mx-2 text-black"),
-], style={'display': 'block'}, id = 'responseTypeInputArea')
+    dcc.Dropdown(id="spectrumDefinitionInput", options=['TBEC-2018', 'ASCE7-22', 'User-Defined'], value='TBEC-2018', clearable=False, className="mb-3 mt-2 mx-2 text-black"),
+], style={'display': 'block'}, id='responseTypeInputArea')
 
 responseButton = html.Div([
     dbc.Button("Create Response Spectrum", id='responseButton', color='primary', className="mb-2 mt-3"),
@@ -99,143 +99,143 @@ responseButton = html.Div([
 
 filterInput = html.Div([
     dbc.Label("Structure Period (sec)", className="mb-1 mt-3 mx-1"),
-    dbc.Input(type = "number", id="periodInput", value=1, className="mb-2 mt-1"),
+    dbc.Input(type="number", id="periodInput", value=1, className="mb-2 mt-1"),
     dbc.Label("Magnitude Range", className="mb-2 mt-4 mx-1"),
     dmc.RangeSlider(
-                id = "magnitudeRangeInput",
-                value=[3.0, 10.0],
-                marks=[
-                    {"value": 0.0, "label": "0"},
-                    {"value": 12.0, "label": "12"}
-                ],
-                min=0.0,
-                max=12.0,
-                step=0.1,
-                minRange=0.5,
-                precision=1,
-                showLabelOnHover=True,
-                className="mt-2 mb-4"
-            ),
+        id="magnitudeRangeInput",
+        value=[3.0, 10.0],
+        marks=[
+            {"value": 0.0, "label": "0"},
+            {"value": 12.0, "label": "12"}
+        ],
+        min=0.0,
+        max=12.0,
+        step=0.1,
+        minRange=0.5,
+        precision=1,
+        showLabelOnHover=True,
+        className="mt-2 mb-4"
+    ),
     dbc.Label("VS30 Range", className="mb-2 mt-4 mx-1"),
     dmc.RangeSlider(
-                id = "vs30RangeInput",
-                value=[360, 760],
-                marks=[
-                    {"value": 0, "label": "0"},
-                    {"value": 1500, "label": "1500"}
-                ],
-                min=0,
-                max=1500,
-                step=10,
-                minRange=20,
-                precision=0,
-                showLabelOnHover=True,
-                className="mt-2 mb-4"
-            ),
+        id="vs30RangeInput",
+        value=[360, 760],
+        marks=[
+            {"value": 0, "label": "0"},
+            {"value": 1500, "label": "1500"}
+        ],
+        min=0,
+        max=1500,
+        step=10,
+        minRange=20,
+        precision=0,
+        showLabelOnHover=True,
+        className="mt-2 mb-4"
+    ),
     dbc.Label("RJB Range", className="mb-2 mt-4 mx-1"),
     dmc.RangeSlider(
-                id = "rjbRangeInput",
-                value=[0, 3000],
-                marks=[
-                    {"value": 0, "label": "0"},
-                    {"value": 3000, "label": "3000"}
-                ],
-                min=0,
-                max=3000,
-                step=10,
-                minRange=20,
-                precision=0,
-                showLabelOnHover=True,
-                className="mt-2 mb-4"
-            ),
+        id="rjbRangeInput",
+        value=[0, 3000],
+        marks=[
+            {"value": 0, "label": "0"},
+            {"value": 3000, "label": "3000"}
+        ],
+        min=0,
+        max=3000,
+        step=10,
+        minRange=20,
+        precision=0,
+        showLabelOnHover=True,
+        className="mt-2 mb-4"
+    ),
     dbc.Label("Fault Mechanism", className="mb-1 mt-1 mx-1"),
     dcc.Dropdown(id="faultMechanismInput", 
-                options = ['Strike-Slip', 'Normal', 'Reverse', 'Oblique', 'Reverse-Oblique', 'Normal-Oblique'], 
-                value = 'Strike-Slip', 
+                options=['Strike-Slip', 'Normal', 'Reverse', 'Oblique', 'Reverse-Oblique', 'Normal-Oblique'], 
+                value='Strike-Slip', 
                 clearable=False, 
                 className="mb-2 mt-1 text-black"
             ),
     dbc.Label("%5-%75 Duration Range", className="mb-2 mt-4 mx-1"),
     dmc.RangeSlider(
-                id = "575DurationInput",
-                value=[0, 500],
-                marks=[
-                    {"value": 0, "label": "0"},
-                    {"value": 500, "label": "500"}
-                ],
-                min=0,
-                max=500,
-                step=5,
-                minRange=10,
-                precision=0,
-                showLabelOnHover=True,
-                className="mt-2 mb-4"
-            ),
+        id="575DurationInput",
+        value=[0, 500],
+        marks=[
+            {"value": 0, "label": "0"},
+            {"value": 500, "label": "500"}
+        ],
+        min=0,
+        max=500,
+        step=5,
+        minRange=10,
+        precision=0,
+        showLabelOnHover=True,
+        className="mt-2 mb-4"
+    ),
     dbc.Label("%5-%95 Duration Range", className="mb-2 mt-4 mx-1"),
     dmc.RangeSlider(
-                id = "595DurationInput",
-                value=[0, 500],
-                marks=[
-                    {"value": 0, "label": "0"},
-                    {"value": 500, "label": "500"}
-                ],
-                min=0,
-                max=500,
-                step=5,
-                minRange=10,
-                precision=0,
-                showLabelOnHover=True,
-                className="mt-2 mb-4"
-            ),
+        id="595DurationInput",
+        value=[0, 500],
+        marks=[
+            {"value": 0, "label": "0"},
+            {"value": 500, "label": "500"}
+        ],
+        min=0,
+        max=500,
+        step=5,
+        minRange=10,
+        precision=0,
+        showLabelOnHover=True,
+        className="mt-2 mb-4"
+    ),
     dbc.Label("Arias Intensity Range", className="mb-2 mt-4 mx-1"),
     dmc.RangeSlider(
-                id = "ariasIntensityInput",
-                value=[0, 10],
-                marks=[
-                    {"value": 0, "label": "0"},
-                    {"value": 10, "label": "10"}
-                ],
-                min=0,
-                max=10,
-                step=0.1,
-                minRange=1,
-                precision=0,
-                showLabelOnHover=True,
-                className="mt-2 mb-4"
-            ),
+        id="ariasIntensityInput",
+        value=[0, 10],
+        marks=[
+            {"value": 0, "label": "0"},
+            {"value": 10, "label": "10"}
+        ],
+        min=0,
+        max=10,
+        step=0.1,
+        minRange=1,
+        precision=0,
+        showLabelOnHover=True,
+        className="mt-2 mb-4"
+    ),
     dbc.Button("Filter Ground Motions", id='filterMotionsButton', color='primary', className="mb-2 mt-2"),
     html.Br(),
     dbc.Label("Number of Ground Motions to be Scaled", className="mb-1 mt-2 mx-1"),
-    dbc.Input(type = "number", id="numberOfMotionsInput", value=11, className="mb-2 mt-1"),
+    dbc.Input(type="number", id="numberOfMotionsInput", value=11, className="mb-2 mt-1"),
     dbc.Button("Find Optimum Selected Ground Motions", id='findOptimumButton', color='primary', className="mb-2 mt-2"),
 ])
 
 scaleInput = html.Div([
     dbc.Label("Spectral Ordinate", className="mb-1 mt-3 mx-2"),
     dcc.Dropdown(id="spectralOrdinateInput", 
-                options = ['SRSS', 'RotD50', 'RotD100'], 
-                value = 'SRSS', 
+                options=['SRSS', 'RotD50', 'RotD100'], 
+                value='SRSS', 
                 clearable=False, 
                 className="mb-2 mt-1 text-black"
             ),
     dbc.Label("Target Spectrum Shift", className="mb-1 mt-2 mx-1"),
-    dbc.Input(type = "number", id="targetShiftInput", value=1.30, className="mb-2 mt-1"),
+    dbc.Input(type="number", id="targetShiftInput", value=1.30, className="mb-2 mt-1"),
     dbc.Label("Period Range of Interest Coefficients", className="mb-2 mt-4 mx-1"),
     dmc.RangeSlider(
-                id = "rangeCoeffInput",
-                value=[0.20, 1.50],
-                marks=[
-                    {"value": 0.0, "label": "0.0"},
-                    {"value": 3.0, "label": "3.0"}
-                ],
-                min=0.0,
-                max=3.0,
-                step=0.1,
-                minRange=0.1,
-                precision=2,
-                showLabelOnHover=True,
-                className="mt-2 mb-4"
-            ),
+        id="rangeCoeffInput",
+        value=[0.20, 1.50],
+        marks=[
+            {"value": 0.0, "label": "0.0"},
+            {"value": 3.0, "label": "3.0"}
+        ],
+        min=0.0,
+        max=3.0,
+        step=0.1,
+        minRange=0.1,
+        precision=2,
+        showLabelOnHover=True,
+        className="mt-2 mb-4"
+    ),
     dbc.Button("Perform Amplitude Scaling", id='amplitudeScalingInput', color='primary', className="mb-2 mt-2"),
 ])
 
@@ -248,19 +248,18 @@ body = html.Div(
         dbc.Col([
             dbc.Card(
                 html.Div(
-                        children = [
+                        children=[
                             dbc.Tabs(
                                 [
                                     dbc.Tab(html.Div(children=[initialInputArea], id='responseArea'), label="Response"),
                                     dbc.Tab(filterInput, label="Filtering"),
                                     dbc.Tab(scaleInput, label="Scaling"),
-
                                 ],
                                 className='nav-fill w-100'
                             )
                         ], className="inputArea mx-2 mb-2 mt-2"),
                 className="inputForm mx-2 mt-4 mb-4")
-        ], width=4),
+        ], xs=12, sm=12, md=4, lg=4, xl=4),
         
         # graph col
         dbc.Col([
@@ -270,7 +269,7 @@ body = html.Div(
             dbc.Row([
                 html.Div(id='outputTable')
             ])
-        ], width=8)
+        ], xs=12, sm=12, md=8, lg=8, xl=8)
     ], className="mx-1")
 )
 
