@@ -28,10 +28,10 @@ defaultFig.update_xaxes(
 
 defaultFig.update_yaxes(
     title_text='pSa (g)',
-    range=[0, 3],
     showgrid=True,
     zeroline=True,
-    zerolinewidth=1
+    zerolinewidth=1,
+    rangemode='tozero'
 )
 
 defaultFig.update_layout(
