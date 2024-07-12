@@ -255,10 +255,10 @@ def USGS_EventsDataToDataFrame(data : dict)->pd.DataFrame:
     feature_list = ['Origin Time (UTC)', 'Lat [°]', 'Lon [°]', 'depth [km]', 'event_type', 'mag', 'magnitude_type', 'place', 'url', 'urldetails']
     df = pd.DataFrame(0, index=np.arange(len(data['features'])), columns=feature_list)
     for ii in range (0, len(data['features'])):
-            df['Origin Time (UTC)'].loc[ii] = data['features'][ii]['properties']['time']
+            df['Origin Time (UTC)'].loc[ii] = pd.to_datetime(data['features'][ii]['properties']['time'], unit='ms').strftime('%y/%m/%d %H:%M:%S')
             df['Lat [°]'].loc[ii]           = data['features'][ii]['geometry']['coordinates'][0]
             df['Lon [°]'].loc[ii]           = data['features'][ii]['geometry']['coordinates'][1]
-            df['depth [km]'].loc[ii]         = data['features'][ii]['geometry']['coordinates'][2]   
+            df['depth [km]'].loc[ii]        = data['features'][ii]['geometry']['coordinates'][2]   
             df['event_type'].loc[ii]        = data['features'][ii]['properties']['type']
             df['mag'].loc[ii]               = data['features'][ii]['properties']['mag']
             df['magnitude_type'].loc[ii]    = data['features'][ii]['properties']['magType']    
@@ -268,7 +268,7 @@ def USGS_EventsDataToDataFrame(data : dict)->pd.DataFrame:
     return df
 
 
-# if __name__ == "__main__":
+if __name__ == "__main__":
     
 #     # from obspy import UTCDateTime
 #     # start_time  = UTCDateTime.now() - 24*3600 #1 day ago
@@ -283,6 +283,6 @@ def USGS_EventsDataToDataFrame(data : dict)->pd.DataFrame:
 #     # df          = GetFDSNEventsLastTwoDays()
 #     # print(df)
 #     # events = GetUSGSEvents(Geom=recFilter)
-#     eventData = GetUSGSEvents()
-#     df_USGS = USGS_EventsDataToDataFrame(eventData)
-#     print(df_USGS)
+    eventData = GetUSGSEvents()
+    df_USGS = USGS_EventsDataToDataFrame(eventData)
+    print(df_USGS)
