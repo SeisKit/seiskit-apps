@@ -162,3 +162,4 @@ cython_debug/
 __pycache__
 .vscode/settings.json
 .pytest_cache
+assets/dashExtensions_default.js

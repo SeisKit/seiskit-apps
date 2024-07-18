@@ -150,7 +150,7 @@ def GetAfadEvents(StartTime : UTCDateTime = None, EndTime: UTCDateTime = None,Fo
     data = json.loads(data)
     return data
 
-def GetAfadEvents2(Geom : RectangularFilter | RadialFilter  = None, Depth : DepthFilter = None, StartTime : UTCDateTime = None, EndTime: UTCDateTime = None, Magnitude : MagnitudeFilter = None, FormatType : str = 'JSON', OrderBy : str = "timedesc")-> Any:
+def GetAfadEvents2(Geom : object  = None, Depth : DepthFilter = None, StartTime : UTCDateTime = None, EndTime: UTCDateTime = None, Magnitude : MagnitudeFilter = None, FormatType : str = 'JSON', OrderBy : str = "timedesc")-> Any:
     """_summary_
 
     Args:
@@ -203,7 +203,7 @@ def GetAfadEventsByEventId(EventId : int,FormatType : str = 'JSON') -> Any:
             data = response.read()
     return data
 
-def GetUSGSEvents(Geom : RectangularFilter | RadialFilter  = None, Depth : DepthFilter = None, StartTime : UTCDateTime = None, EndTime: UTCDateTime = None, Magnitude : MagnitudeFilter = None, FormatType : str = 'geojson')-> Any:
+def GetUSGSEvents(Geom : object  = None, Depth : DepthFilter = None, StartTime : UTCDateTime = None, EndTime: UTCDateTime = None, Magnitude : MagnitudeFilter = None, FormatType : str = 'geojson')-> Any:
     """_summary_
 
     Args:
@@ -242,13 +242,15 @@ def GetUSGSEvents(Geom : RectangularFilter | RadialFilter  = None, Depth : Depth
         url += "mindepth={}&maxdepth={}&".format(Depth.MinDepth,Depth.MaxDepth)
     
     if Magnitude != None:
-        url += "minmagnitude={}&maxmagnitude={}&".format(Magnitude.MinMag,Magnitude.MaxMag)
+        url += "minmagnitude={}&maxmagnitude={}&".format(0,Magnitude.MaxMag)
     
 
     with request.urlopen(url, timeout=10) as response:
         if response.getcode() == 200:
             data = response.read()
     data = json.loads(data)
+    for ii in range (0, len(data['features'])):
+        data['features'][0]['properties']['depth'] = data['features'][ii]['geometry']['coordinates'][2]
     return data
 
 def USGS_EventsDataToDataFrame(data : dict)->pd.DataFrame:
@@ -256,9 +258,9 @@ def USGS_EventsDataToDataFrame(data : dict)->pd.DataFrame:
     df = pd.DataFrame(0, index=np.arange(len(data['features'])), columns=feature_list)
     for ii in range (0, len(data['features'])):
             df['OriginTime'].loc[ii] = pd.to_datetime(data['features'][ii]['properties']['time'], unit='ms').strftime('%y/%m/%d %H:%M:%S')
-            df['Lat'].loc[ii]           = data['features'][ii]['geometry']['coordinates'][0]
-            df['Lon'].loc[ii]           = data['features'][ii]['geometry']['coordinates'][1]
-            df['depth'].loc[ii]        = data['features'][ii]['geometry']['coordinates'][2]   
+            df['Lat'].loc[ii]               = data['features'][ii]['geometry']['coordinates'][0]
+            df['Lon'].loc[ii]               = data['features'][ii]['geometry']['coordinates'][1]
+            df['depth'].loc[ii]             = data['features'][ii]['geometry']['coordinates'][2]   
             df['event_type'].loc[ii]        = data['features'][ii]['properties']['type']
             df['mag'].loc[ii]               = data['features'][ii]['properties']['mag']
             df['magnitude_type'].loc[ii]    = data['features'][ii]['properties']['magType']    

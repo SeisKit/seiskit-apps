@@ -1,73 +1,287 @@
-# Tektonik plakaların geojson
-# https://raw.githubusercontent.com/fraxen/tectonicplates/master/GeoJSON/PB2002_boundaries.json
-import json
-# import dash_leaflet.express as dlx
-from dash import Dash,html,dcc,callback,Output,Input,State
-import dash_leaflet as dl
+import os
+from pandas import DataFrame
+from SeisEventsFunctions import DepthFilter, MagnitudeFilter, USGS_EventsDataToDataFrame,GetUSGSEvents
 import dash_bootstrap_components as dbc
-from dash.exceptions import PreventUpdate
+from dash import dcc,html,Input, Output,Dash
+from dash.dependencies import Input, Output
+import dash_leaflet as dl
+import json
 from dash_extensions.javascript import arrow_function, assign
-import plotly.graph_objects as go
-from SeisEventsFunctions import GetUSGSEvents,USGS_EventsDataToDataFrame
-import plotly.express as px
+from dash_leaflet import express as dlx #protobuf exception -> https://stackoverflow.com/questions/72441758/typeerror-descriptors-cannot-not-be-created-directly ; solution -> pip install protobuf==3.20.*
+
+# helpfull links
+# https://medium.com/@mdavid800/plotly-dash-interactive-mapping-dash-leaflet-titiler-e0c362d15e4
+# https://medium.com/mcd-unison/nested-maps-with-dash-leaflet-22cc6497481c
+# https://stackoverflow.com/questions/75852166/add-popup-in-dl-geojson-dash-leaflet-python-dash
+# https://community.plotly.com/t/show-and-tell-dash-leaflet/34924/385
+# https://dash.plotly.com/external-resources
+# https://github.com/emilhe/dash-leaflet/issues/243
 
 # External Style
 chroma = "https://cdnjs.cloudflare.com/ajax/libs/chroma-js/2.1.0/chroma.min.js"
+# main_js = "C:\\Users\\muham\\Masaüstü\\github\\seiskit-apps\\assets\\mainExtensions.js"
 
-# Create colorbar func
-# def Get_CategoricalColorbar(classes : list, colorscale : list, **kwargs):
-#     ctg = ["{}+".format(cls,classes[i + 1]) for i,cls in enumerate(classes[:-1])] + ["{}+".format(classes[-1])]
-#     colorbar = dlx.categorical_colorbar(categories=ctg,colorscale=colorscale,**kwargs)
-#     return colorbar
+# Colorbar control for earthquake events locations
+# =======================================================================================================
+classes=[0,3,10,20,30,40,50]
+colorscale="ylorrd"
+style     = dict(weight=2, opacity=0.5, color='black', dashArray='3')
+vmin = 0
+vmax = 50
+colorBars = dl.Colorbar(position="bottomright",colorscale=colorscale,style=style,min=vmin, max=vmax, unit='/km')
+# Create colorbar.
+ctg = ["{}+".format(cls, classes[i + 1]) for i, cls in enumerate(classes[:-1])] + ["{}+".format(classes[-1])]
+colorbar = dlx.categorical_colorbar(categories=ctg, colorscale=colorscale, width=300, height=10, position="bottomright")
+
 
 # Get Info Data
+# =======================================================================================================
 def Get_Info(feature = None, headtext : str = ""):
-    header = [html.H4(headtext)]
+    header = [html.Header(headtext)]
     if not feature:
-        return header + [html.P("Hoover over a city/state")]
-    return header + [html.B(feature["properties"]["name"]), html.Sup("2")]
+        return header + [html.P("Hoover over a country/city")]
+    return header + [html.P(feature["properties"]["ADMIN"]),html.Br()] 
 
 # Create Info Control
-info = html.Div(children=Get_Info(), id="info", className="info", style={"position" : "absolute", "top" : "10px", "right" : "10px", "zIndex" : "1000"})
+# =======================================================================================================
+info = html.Div(children=Get_Info(), id="info", className="info", style={"position" : "absolute", "top" : "430px", "left" : "10px", "zIndex" : "1000"})
 
-# Javascript func 
-on_each_feature = assign("""function(feature,layer,context){
-                            layer.bindTooltip(`${feature.properties.ADMIN} ${feature.properties.density}`)
-                        }
-""")
-# Get Latest Earthquake data whole world from USGS Web Service
-latest_events = GetUSGSEvents()
-df_events     = USGS_EventsDataToDataFrame(latest_events)
+
+
+# Load GeoJSON datas
+# =======================================================================================================
+with open('applications\\seisEvents\\data\\tectonic_plates.json') as f:
+    geojson_data = json.load(f)
+
+with open('applications\\seisEvents\\data\\countries.geojson') as f:
+    county_goejson_data = json.load(f)
+
+with open('applications\\seisEvents\\data\\mtadirifay_2012.geojson') as f:
+    mta_dirifay = json.load(f)
+
+# Create GeoJSON objects.
+# =======================================================================================================
+techtonicPlates = dl.GeoJSON(data=geojson_data,
+                             options=dict(style=dict(weight=1.2, color = "blue", pixelsize=1, fillOpacity=0.5)))
+
+countries = dl.GeoJSON(data=county_goejson_data,
+                    #    options=dict(onEachFeature = on_each_feature,pointToLayer=point_to_layer),
+                    options=dict(style = dict(color = "#D9D9D9")),
+                    zoomToBounds=True,  # when true, zooms to bounds when data changes
+                    zoomToBoundsOnClick=True,  # when true, zooms to bounds when data changes
+                    hoverStyle=arrow_function(dict(weight=5, color='#666', dashArray='')), #style applied on hover
+                    id='county',
+                    )
+
+trFaults = dl.GeoJSON(data=mta_dirifay,
+                      options=dict(style=dict(weight=1, color = "gray", pixelsize=1, fillOpacity=0.5)))
+
+# EARTHQUAKE DATA 
+# =======================================================================================================
+# usgsData = GetUSGSEvents()
+# df_usgs  = USGS_EventsDataToDataFrame(usgsData)
+Mag = MagnitudeFilter(MinMag=0.,MaxMag=10.)
+Depth = DepthFilter(MinDepth=0., MaxDepth=5000.)
+usgs_geojson = GetUSGSEvents()
+df_usgs      = USGS_EventsDataToDataFrame(usgs_geojson)
+
+# add (custom) tooltip
+on_each_feature_events = assign("""function(features, layer, context){
+    layer.bindTooltip(`${features.properties.place} ${features.properties.mag} ${features.geometry.coordinates[2]} ${features.properties.url}`)
+}""")
+
+#  This function determines the radius of the earthquake marker based on its magnitude.
+#  Earthquakes with a magnitude of 0 were being plotted with the wrong radius.
+# get_radius = assign("""
+#   function getRadius(magnitude) {
+#     if (magnitude === 0) {
+#       return 1;
+#     }
+#     return magnitude * 4;
+#   }
+# """)
+
+
+
+
+"""function(feature, latlng, context) {
     
-# Get geojson data
-countries = json.load(open("assets\\countries.geojson",'r'))
-# print(countries.keys())
+    return new L.circleMarker(latlng, {
+          radius: 5,
+          color: '#FF0000'
+        });
+}
+"""
+# how to draw points
+point_to_layer_events = assign("""function(feature, latlng, context){
+    const {min, max, colorscale, circleOptions, colorProp} = context.props.hideout;
+    const csc = chroma.scale(colorscale).domain([min, max]);  // chroma lib to construct colorscale
+    circleOptions.fillColor = csc(feature.geometry.coordinates[colorProp]);  // set color based on color prop
+    return new L.circleMarker(latlng,circleOptions);  // render a simple circle marker
+}""")
 
-# # Create Map
-# fig = px.choropleth(df_events,geojson=countries['features'])
-# fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
 
-map = html.Div([
-    dl.Map(
-        [dl.TileLayer(),  # Varsayılan temel harita katmanı
-         dl.GeoJSON(data=countries,  # GeoJSON verisi
-                    cluster=True,
-                     options={'style': {'color': 'blue'}}),  # İşaretçi rengi
-         dl.Marker(position=[],  # İşaretçi koordinatları
-                   children=dl.Tooltip("Merhaba!"))],  # İşaretçi üzerine gelindiğinde görünen metin
-        style={'width': '100%', 'height': '80vh', 'margin': "auto", "display": "block"}
-    )
-])
-# Create App
-app = Dash(__name__,external_scripts=[chroma], prevent_initial_callbacks=True)
-app.layout = [map]
+# handle_style = assign("""function(feature, context){
+#         const {classes, colorscale, style,  colorProp} = context.props.hideout;  // get props from hideout
+#         const value = feature.properties[colorProp];  // get value the determines the color
+#         for (let i = 0; i < classes.length; ++i) {
+#             if (value > classes[i]) {
+#                 style.fillColor = colorscale[i];  // set the fill color according to the class
+#             }
+#         }
+#         return style;
+#     }""")
 
-# @callback(Output("info","children"), Input("geojson","hoverData"))
-# def info_hover(feature):
-#     return Get_Info(feature)
+# geojson options ["pointToLayer", "style", "onEachFeature", "filter", "coordsToLatLng"]
+# from dash_extensions.javascript import Namespace
+# ns = Namespace("dashExtensions","default")
+events = dl.GeoJSON(
+                    data=usgs_geojson,
+                    options=dict(pointToLayer = point_to_layer_events,
+                                 onEachFeature=on_each_feature_events),  # add (custom) tooltip
+                    
+                    zoomToBounds=True,  # when true, zooms to bounds when data changes    
+                    zoomToBoundsOnClick=True,              
+                    id='EventsUSGS',
+                    hideout=dict(colorProp=2,circleOptions=dict(fillOpacity=0.3, stroke=False, weight = 1),
+                                  min=vmin, max=vmax, colorscale=colorscale)
+                    )
 
-if __name__ == "__main__":
+# Initialize Dash app
+# =======================================================================================================
+app = Dash(__name__,
+           external_scripts=[chroma], 
+           prevent_initial_callbacks=True,
+           assets_folder=f"{os.getcwd()}/assets"
+           )
+
+# Create Layout
+# =======================================================================================================
+layersControl = dl.LayersControl([
+                                    # BaseMap gösterim layer ı
+                                    dl.Overlay(
+                                        dl.LayerGroup(dl.TileLayer(url="https://cartodb-basemaps-{s}.global.ssl.fastly.net/light_nolabels/{z}/{x}/{y}.png",id="TileMap")
+                                        ),
+                                        name="BaseMap",
+                                        checked=True
+                                        ),
+                                    
+                                    # Ülke sınırlarının geojson gösterim layer ı
+                                    dl.Overlay(
+                                        dl.LayerGroup([countries,info],id="Countries"),
+                                        name="CountryBorders",
+                                        checked=False
+                                        ),
+                                    
+                                    # Tektonik geojson gösterim layer ı
+                                    dl.Overlay(
+                                        dl.LayerGroup(techtonicPlates,id="TechtonicPlt"),
+                                        name="TecthonicPlates",
+                                        checked=False
+                                        ),
+                                    # Tr diri fay hattı gösterim layer ı
+                                    dl.Overlay(
+                                        dl.LayerGroup(trFaults,id="TrFlts"),
+                                        name="TrFaults",
+                                        checked=False
+                                        ),
+
+                                    # dl.Overlay(
+                                    #     dl.LayerGroup(events,id="earthquakes"),
+                                    #     name="Events",
+                                    #     checked=True
+                                    #     ),
+
+                                    #COG fed into Tilelayer using TiTiler url (taken from r["tiles"][0])
+                                    # dl.Overlay(dl.LayerGroup(dl.TileLayer(url=r["tiles"][0], opacity=0.8,id="WindSpeed@100m")),name="WS@100m",checked=True),
+                                    
+                                    dl.LayerGroup(id="layer"),
+
+                                    # set colorbar and location in app            
+                                    # dl.Colorbar(colorscale=['blue','green','yellow','orange','brown', 'purple','red'], width=20, height=150, min=0, max=7,unit='m/s',position="bottomright"),
+                                    # # info,
+                                ])
+
+map_Div = html.Div([
+                    html.H1(children='REAL-TIME EARTHQUAKE EVENTS MAP'),
+                    html.Div(
+                                [
+                                    dl.Map( id='map',
+                                           center = [0,0],
+                                           zoom = 6,
+                                           doubleClickZoom=True,
+                                           dragging=True,
+                                           style={'width': '100%', 'height': '500px', 'margin': "auto"},
+                                           children=[  dl.TileLayer(),
+                                                        # dl.FullscreenControl(),
+                                                        dl.MeasureControl(position="topleft", primaryLengthUnit="kilometers", primaryAreaUnit="hectares",activeColor="#214097", completedColor="#972158"),
+                                                        # countries,
+                                                        dl.LayerGroup(events),
+                                                        colorbar,
+                                                        # info,
+                                                        layersControl,
+                                                        
+                                                    ],
+                                            )
+                                    
+                                ],
+                                
+                                id='map_div', 
+                                className='map_div'
+                            )
+                ],
+        className='main_div')
+
+container_map = html.Div([map_Div],className='container')
+
+app.layout = container_map
+
+# Callback functions
+# =======================================================================================================
+@app.callback(Output("info","children"), Input("county","hover_feature"))
+def info_hover(feature):
+    return Get_Info(feature,headtext="Country")
+
+def create_MarkerPopup(df : DataFrame, index : int) -> html:
+    popup = dl.Popup([
+                        html.B("Place :{}".format(df.iloc()[index]["place"])), 
+                        html.Br(),
+                        html.B("Latidude :{} Longitude : {}".format(df.iloc()[index]["Lat"],df.iloc()[index]["Lon"])), 
+                        html.Br(),
+                        html.B("Magnitude : {}-{}".format(df.iloc()[index]["mag"],df.iloc()[index]["magnitude_type"])), 
+                        html.Br(),
+                        html.B("Depth : {}-km".format(df.iloc()[index]["depth"])), 
+                        html.Br(),
+                        html.Div( children=[html.A('Details' , href=df.iloc()[index]["url"], target="_blank")] )
+                       ]                                                           
+                    )
+    return popup
+
+
+
+# @app.callback(Output("earthquakes", "children"), Input("map", "center") )
+# def update_map(_):
+#     # Process earthquake data and create markers
+#     # Load Earthquake data
+#     usgsData = GetUSGSEvents()
+#     df_usgs  = USGS_EventsDataToDataFrame(usgsData)
+#     # Example: Parse GeoJSON data and create dl.Marker components
+#     # ...
+#     markers = [  dl.CircleMarker(id       = str(index),
+#                                  weight   = 2,
+#                                  stroke   = True,
+#                                  center   = [df_usgs.iloc()[index]["Lat"],df_usgs.iloc()[index]["Lon"]], 
+#                                  children = [create_MarkerPopup(df_usgs,index)],
+#                                  radius   = df_usgs.iloc()[index]['mag']*4,
+#                                  color    = str(df_usgs.iloc()[index]['depth'])
+#                                         ) for index in range(0,df_usgs.last_valid_index())
+
+#                ]
+    
+#     # Return the markers to be displayed on the map
+#     return markers  # List of dl.Marker components
+
+
+# Run the app
+if __name__ == '__main__':
     app.run_server(debug=True)
-    # print(earthquake_gdf['geometry'])
-    # print(earthquake_gdf['geometry'][0])
-    # print(countries['features'][0])
