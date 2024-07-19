@@ -24,6 +24,8 @@ chroma = "https://cdnjs.cloudflare.com/ajax/libs/chroma-js/2.1.0/chroma.min.js"
 # Colorbar control for earthquake events locations
 # =======================================================================================================
 classes=[0,3,10,20,30,40,50]
+# Picnic , Jet , ylorrd "Viridis"
+
 colorscale="ylorrd"
 style     = dict(weight=2, opacity=0.5, color='black', dashArray='3')
 vmin = 0
@@ -85,38 +87,49 @@ Depth = DepthFilter(MinDepth=0., MaxDepth=5000.)
 usgs_geojson = GetUSGSEvents()
 df_usgs      = USGS_EventsDataToDataFrame(usgs_geojson)
 
-# add (custom) tooltip
+# zoombounds = assign(""""function(features, layer, context,event){
+#                                                                 features.on("click", function (event) {
+#                                                                                                         // Assuming the clicked feature is a shape, not a point marker.
+#                                                                                                         map.fitBounds(event.layer.getBounds());
+#                                                                                                     });
+#                                                                 }
+#                     """)
+
 on_each_feature_events = assign("""function(features, layer, context){
-    layer.bindTooltip(`${features.properties.place} ${features.properties.mag} ${features.geometry.coordinates[2]} ${features.properties.url}`)
-}""")
+                                                                    layer.bindPopup(`
+                                                                                        <div id='MarkerPopup' class="container" style:"flex-row align-center">
+                                                                                            <div class:"col align-center">
+                                                                                                <h2 style="margin: 0; margin-right: .5rem; font-size: large; color: red;"> 
+                                                                                                            <span style="margin: 0; font-size: small;"> ${features.properties.magType} <span/>
+                                                                                                            ${features.properties.mag}
+                                                                                                </h2>
+                                                                                            </div>
+                                                                                            
+                                                                                            
+                                                                                            <div class='class="col align-center"'>
 
-#  This function determines the radius of the earthquake marker based on its magnitude.
-#  Earthquakes with a magnitude of 0 were being plotted with the wrong radius.
-# get_radius = assign("""
-#   function getRadius(magnitude) {
-#     if (magnitude === 0) {
-#       return 1;
-#     }
-#     return magnitude * 4;
-#   }
-# """)
+                                                                                                    <h4 margin=0. margin-bottom=.5rem>Place :${features.properties.place}</h4>
+                                                                                                                                                                                                    
+                                                                                                    <h4 style="margin:0.">Latidude :${features.geometry.coordinates[0]} Longitude : ${features.geometry.coordinates[1]}</h4>
+                                                                                                    
+                                                                                                    <h4 style="margin:0.">Depth : ${features.geometry.coordinates[2]}-km</h4>                     
+                                                                                                    
+                                                                                                    <a href="${features.properties.url}" target=_blank style="margin:0."> Details </a>
+                                                                                                
+                                                                                             </div>
+                                                                                        </div>
+                                                                                    `)
+                                                                    }
+                                """)
 
 
-
-
-"""function(feature, latlng, context) {
-    
-    return new L.circleMarker(latlng, {
-          radius: 5,
-          color: '#FF0000'
-        });
-}
-"""
 # how to draw points
 point_to_layer_events = assign("""function(feature, latlng, context){
     const {min, max, colorscale, circleOptions, colorProp} = context.props.hideout;
     const csc = chroma.scale(colorscale).domain([min, max]);  // chroma lib to construct colorscale
     circleOptions.fillColor = csc(feature.geometry.coordinates[colorProp]);  // set color based on color prop
+    circleOptions.radius    = feature.properties.mag * 2;  // set color based on color prop
+    circleOptions.fillOpacity = 0.;
     return new L.circleMarker(latlng,circleOptions);  // render a simple circle marker
 }""")
 
@@ -135,16 +148,18 @@ point_to_layer_events = assign("""function(feature, latlng, context){
 # geojson options ["pointToLayer", "style", "onEachFeature", "filter", "coordsToLatLng"]
 # from dash_extensions.javascript import Namespace
 # ns = Namespace("dashExtensions","default")
-events = dl.GeoJSON(
-                    data=usgs_geojson,
+events = dl.GeoJSON(data=usgs_geojson,
+                    zoomToBounds=True,  # when true, zooms to bounds when data changes
+                    zoomToBoundsOnClick=True, # when true, zooms to bounds of feature (e.g. cluster) on click
                     options=dict(pointToLayer = point_to_layer_events,
-                                 onEachFeature=on_each_feature_events),  # add (custom) tooltip
-                    
-                    zoomToBounds=True,  # when true, zooms to bounds when data changes    
-                    zoomToBoundsOnClick=True,              
+                                 onEachFeature=on_each_feature_events,
+                                 interactive = True),
                     id='EventsUSGS',
-                    hideout=dict(colorProp=2,circleOptions=dict(fillOpacity=0.3, stroke=False, weight = 1),
-                                  min=vmin, max=vmax, colorscale=colorscale)
+                    hideout=dict(colorProp=2,
+                                 circleOptions=dict(stroke=True, weight = 1),
+                                 min=vmin, 
+                                 max=vmax, 
+                                 colorscale=colorscale)
                     )
 
 # Initialize Dash app
@@ -208,17 +223,15 @@ map_Div = html.Div([
                                 [
                                     dl.Map( id='map',
                                            center = [0,0],
-                                           zoom = 6,
+                                           zoom = 4,
                                            doubleClickZoom=True,
                                            dragging=True,
                                            style={'width': '100%', 'height': '500px', 'margin': "auto"},
                                            children=[  dl.TileLayer(),
-                                                        # dl.FullscreenControl(),
+                                                        dl.FullscreenControl(),
                                                         dl.MeasureControl(position="topleft", primaryLengthUnit="kilometers", primaryAreaUnit="hectares",activeColor="#214097", completedColor="#972158"),
-                                                        # countries,
                                                         dl.LayerGroup(events),
                                                         colorbar,
-                                                        # info,
                                                         layersControl,
                                                         
                                                     ],
