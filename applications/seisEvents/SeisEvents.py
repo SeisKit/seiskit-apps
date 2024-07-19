@@ -1,8 +1,8 @@
 import os
 from pandas import DataFrame
-from SeisEventsFunctions import DepthFilter, MagnitudeFilter, USGS_EventsDataToDataFrame,GetUSGSEvents
+from applications.seisEvents.SeisEventsFunctions import DepthFilter, MagnitudeFilter, USGS_EventsDataToDataFrame,GetUSGSEvents
 import dash_bootstrap_components as dbc
-from dash import dcc,html,Input, Output,Dash
+from dash import dcc,html,Input, Output,Dash,dash_table
 from dash.dependencies import Input, Output
 import dash_leaflet as dl
 import json
@@ -17,9 +17,7 @@ from dash_leaflet import express as dlx #protobuf exception -> https://stackover
 # https://dash.plotly.com/external-resources
 # https://github.com/emilhe/dash-leaflet/issues/243
 
-# External Style
-chroma = "https://cdnjs.cloudflare.com/ajax/libs/chroma-js/2.1.0/chroma.min.js"
-# main_js = "C:\\Users\\muham\\Masaüstü\\github\\seiskit-apps\\assets\\mainExtensions.js"
+
 
 # Colorbar control for earthquake events locations
 # =======================================================================================================
@@ -27,7 +25,7 @@ classes=[0,3,10,20,30,40,50]
 # Picnic , Jet , ylorrd "Viridis"
 
 colorscale="ylorrd"
-style     = dict(weight=2, opacity=0.5, color='black', dashArray='3')
+style     = dict(weight=2, opacity=0.7, color='black', dashArray='3')
 vmin = 0
 vmax = 50
 colorBars = dl.Colorbar(position="bottomright",colorscale=colorscale,style=style,min=vmin, max=vmax, unit='/km')
@@ -82,8 +80,8 @@ trFaults = dl.GeoJSON(data=mta_dirifay,
 # =======================================================================================================
 # usgsData = GetUSGSEvents()
 # df_usgs  = USGS_EventsDataToDataFrame(usgsData)
-Mag = MagnitudeFilter(MinMag=0.,MaxMag=10.)
-Depth = DepthFilter(MinDepth=0., MaxDepth=5000.)
+# Mag = MagnitudeFilter(MinMag=0.,MaxMag=10.)
+# Depth = DepthFilter(MinDepth=0., MaxDepth=5000.)
 usgs_geojson = GetUSGSEvents()
 df_usgs      = USGS_EventsDataToDataFrame(usgs_geojson)
 
@@ -165,7 +163,7 @@ events = dl.GeoJSON(data=usgs_geojson,
 # Initialize Dash app
 # =======================================================================================================
 app = Dash(__name__,
-           external_scripts=[chroma], 
+           
            prevent_initial_callbacks=True,
            assets_folder=f"{os.getcwd()}/assets"
            )
@@ -230,9 +228,10 @@ map_Div = html.Div([
                                            children=[  dl.TileLayer(),
                                                         dl.FullscreenControl(),
                                                         dl.MeasureControl(position="topleft", primaryLengthUnit="kilometers", primaryAreaUnit="hectares",activeColor="#214097", completedColor="#972158"),
+                                                        layersControl,
                                                         dl.LayerGroup(events),
                                                         colorbar,
-                                                        layersControl,
+                                                        
                                                         
                                                     ],
                                             )
@@ -245,9 +244,18 @@ map_Div = html.Div([
                 ],
         className='main_div')
 
-container_map = html.Div([map_Div],className='container')
+table = dash_table.DataTable(
+    df_usgs.to_dict("records"),
+    [{"name": i, "id": i} for i in df_usgs.columns],
+    filter_action="native",
+    filter_options={"placeholder_text": "Filter column..."},
+    page_size=10,
+)
 
-app.layout = container_map
+container_map = html.Div([map_Div,table],className='container')
+
+def layout():
+    return html.Div([container_map])
 
 # Callback functions
 # =======================================================================================================
@@ -296,5 +304,3 @@ def create_MarkerPopup(df : DataFrame, index : int) -> html:
 
 
 # Run the app
-if __name__ == '__main__':
-    app.run_server(debug=True)

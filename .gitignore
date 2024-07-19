@@ -163,3 +163,9 @@ __pycache__
 .vscode/settings.json
 .pytest_cache
 assets/dashExtensions_default.js
+components/__pycache__/__init__.cpython-310.pyc
+applications/tbec/__pycache__/__init__.cpython-310.pyc
+applications/tbec/__pycache__/__init__.cpython-310.pyc
+components/__pycache__/__init__.cpython-310.pyc
+applications/asce/__pycache__/__init__.cpython-310.pyc
+components/__pycache__/__init__.cpython-310.pyc
