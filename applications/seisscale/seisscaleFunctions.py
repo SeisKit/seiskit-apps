@@ -3,7 +3,6 @@ import pandas as pd
 from scipy.interpolate import interp1d
 from pandas.core.frame import DataFrame
 import similaritymeasures
-import scipy as sp
 
 # Ignores performance warnings
 from warnings import simplefilter
