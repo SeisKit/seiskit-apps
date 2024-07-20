@@ -250,7 +250,7 @@ def GetUSGSEvents(Geom : object  = None, Depth : DepthFilter = None, StartTime :
             data = response.read()
     data = json.loads(data)
     for ii in range (0, len(data['features'])):
-        data['features'][0]['properties']['depth'] = data['features'][ii]['geometry']['coordinates'][2]
+        data['features'][ii]['properties']['depth'] = data['features'][ii]['geometry']['coordinates'][2]
     return data
 
 def USGS_EventsDataToDataFrame(data : dict)->pd.DataFrame:
@@ -270,21 +270,21 @@ def USGS_EventsDataToDataFrame(data : dict)->pd.DataFrame:
     return df
 
 
-# if __name__ == "__main__":
+
+if __name__ == "__main__":
     
-#     # from obspy import UTCDateTime
-#     # start_time  = UTCDateTime.now() - 24*3600 #1 day ago
-#     # end_time    = UTCDateTime.now()
-#     # recFilter   = RectangularFilter(minLat=39,maxLat=41,minLon=32,maxLon=34)
-#     # radFilter   = RadialFilter(Lat=33,Lon=40,maxRad=100_000,minRad=50_000)
-#     # depthFilter = DepthFilter(MinDepth=1,MaxDepth=8)
-#     # mgFilter    = MagnitudeFilter('mb',7,1)
-#     # Data        = GetAfadEventsLastTwoDays()
-#     # event       = GetAfadEventsByEventId(EventId=632764,FormatType='GEOJSON')
-#     # print(event)
-#     # df          = GetFDSNEventsLastTwoDays()
-#     # print(df)
-#     # events = GetUSGSEvents(Geom=recFilter)
-    # eventData = GetUSGSEvents()
-    # df_USGS = USGS_EventsDataToDataFrame(eventData)
-    # print(df_USGS)
+# #     # from obspy import UTCDateTime
+# #     # start_time  = UTCDateTime.now() - 24*3600 #1 day ago
+# #     # end_time    = UTCDateTime.now()
+# #     # recFilter   = RectangularFilter(minLat=39,maxLat=41,minLon=32,maxLon=34)
+# #     # radFilter   = RadialFilter(Lat=33,Lon=40,maxRad=100_000,minRad=50_000)
+# #     # depthFilter = DepthFilter(MinDepth=1,MaxDepth=8)
+# #     # mgFilter    = MagnitudeFilter('mb',7,1)
+# #     # Data        = GetAfadEventsLastTwoDays()
+# #     # event       = GetAfadEventsByEventId(EventId=632764,FormatType='GEOJSON')
+# #     # print(event)
+# #     # df          = GetFDSNEventsLastTwoDays()
+# #     # print(df)
+# #     # events = GetUSGSEvents(Geom=recFilter)
+    eventData = GetUSGSEvents()
+    df_USGS = USGS_EventsDataToDataFrame(eventData)

@@ -4,14 +4,15 @@ from applications.asce import asceApp
 from applications.tbec import tbecApp
 from applications.seisscale import seisscaleApp
 from applications.eqprocess import processorApp
-from applications.seisEvents import SeisEvents
+from applications.seisEvents import seisEvents
+
 
 # External Style
 chroma = "https://cdnjs.cloudflare.com/ajax/libs/chroma-js/2.1.0/chroma.min.js"
 app = Dash(__name__,external_scripts=[chroma],
            suppress_callback_exceptions=True, 
-           title="SeisKit", 
-           external_stylesheets=[dbc.themes.SANDSTONE])
+           title="SeisKit"
+           )
 server = app.server
 
 app.layout = html.Div([
@@ -38,7 +39,7 @@ def display_page(pathname):
     elif pathname == '/seisscale':
         content = seisscaleApp.layout()
     elif pathname == '/seisevents':
-        content = SeisEvents.layout()
+        content = seisEvents.layout()
     else:
         content = '404 Page Not Found'
     

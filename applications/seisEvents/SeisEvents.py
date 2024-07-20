@@ -1,10 +1,12 @@
 import os
+import numpy as np
 from pandas import DataFrame
-from applications.seisEvents.SeisEventsFunctions import DepthFilter, MagnitudeFilter, USGS_EventsDataToDataFrame,GetUSGSEvents
+from applications.seisEvents.seisEventsFunctions import DepthFilter, MagnitudeFilter, USGS_EventsDataToDataFrame,GetUSGSEvents
 import dash_bootstrap_components as dbc
-from dash import dcc,html,Input, Output,Dash,dash_table
+from dash import dcc,html,Input, Output,dash_table,callback
 from dash.dependencies import Input, Output
 import dash_leaflet as dl
+import dash_mantine_components as dmc
 import json
 from dash_extensions.javascript import arrow_function, assign
 from dash_leaflet import express as dlx #protobuf exception -> https://stackoverflow.com/questions/72441758/typeerror-descriptors-cannot-not-be-created-directly ; solution -> pip install protobuf==3.20.*
@@ -17,20 +19,30 @@ from dash_leaflet import express as dlx #protobuf exception -> https://stackover
 # https://dash.plotly.com/external-resources
 # https://github.com/emilhe/dash-leaflet/issues/243
 
-
+# title
+Title = dmc.Text("SeisEvents", className='fs-3 mx-3 mb-3 mt-3')
 
 # Colorbar control for earthquake events locations
 # =======================================================================================================
-classes=[0,3,10,20,30,40,50]
-# Picnic , Jet , ylorrd "Viridis"
 
-colorscale="ylorrd"
+def create_colorscale(color1 : str, color2 : str, n_colors : int)->list:
+    color1_ = [int(i) for i in color1[4:-1].split(",")]
+    color2_ = [int(i) for i in color2[4:-1].split(",")]
+    colors_ = np.linspace(start=color1_, stop=color2_, num=n_colors)
+    colors  = [str(f"rgb{int(i[0]), int(i[1]), int(i[2])}") for i in colors_]
+    return colors
+
+classes=[10,20,40,60,80,100,120]
+# ylorrd "Viridis"
+
+# colorscale=create_colorscale(color1='rgb(255, 255, 204)', color2='rgb(128, 0, 38)', n_colors=7)
+colorscale='ylorrd'
 style     = dict(weight=2, opacity=0.7, color='black', dashArray='3')
 vmin = 0
 vmax = 50
-colorBars = dl.Colorbar(position="bottomright",colorscale=colorscale,style=style,min=vmin, max=vmax, unit='/km')
+# colorBars = dl.Colorbar(position="bottomright",colorscale=colorscale,min=vmin, max=vmax, unit='/km')
 # Create colorbar.
-ctg = ["{}+".format(cls, classes[i + 1]) for i, cls in enumerate(classes[:-1])] + ["{}+".format(classes[-1])]
+ctg = ["{}+".format(cls, classes[i + 1]) for i, cls in enumerate(classes[:-1])] + ["{}+km".format(classes[-1])]
 colorbar = dlx.categorical_colorbar(categories=ctg, colorscale=colorscale, width=300, height=10, position="bottomright")
 
 
@@ -85,39 +97,31 @@ trFaults = dl.GeoJSON(data=mta_dirifay,
 usgs_geojson = GetUSGSEvents()
 df_usgs      = USGS_EventsDataToDataFrame(usgs_geojson)
 
-# zoombounds = assign(""""function(features, layer, context,event){
-#                                                                 features.on("click", function (event) {
-#                                                                                                         // Assuming the clicked feature is a shape, not a point marker.
-#                                                                                                         map.fitBounds(event.layer.getBounds());
-#                                                                                                     });
-#                                                                 }
-#                     """)
-
 on_each_feature_events = assign("""function(features, layer, context){
                                                                     layer.bindPopup(`
                                                                                         <div id='MarkerPopup' class="container" style:"flex-row align-center">
-                                                                                            <div class:"col align-center">
-                                                                                                <h2 style="margin: 0; margin-right: .5rem; font-size: large; color: red;"> 
-                                                                                                            <span style="margin: 0; font-size: small;"> ${features.properties.magType} <span/>
-                                                                                                            ${features.properties.mag}
-                                                                                                </h2>
-                                                                                            </div>
-                                                                                            
-                                                                                            
-                                                                                            <div class='class="col align-center"'>
-
-                                                                                                    <h4 margin=0. margin-bottom=.5rem>Place :${features.properties.place}</h4>
-                                                                                                                                                                                                    
-                                                                                                    <h4 style="margin:0.">Latidude :${features.geometry.coordinates[0]} Longitude : ${features.geometry.coordinates[1]}</h4>
-                                                                                                    
-                                                                                                    <h4 style="margin:0.">Depth : ${features.geometry.coordinates[2]}-km</h4>                     
-                                                                                                    
-                                                                                                    <a href="${features.properties.url}" target=_blank style="margin:0."> Details </a>
+                                                                                            <div class="row">
+                                                                                                <div class:"col align-center">
+                                                                                                    <h2 style="margin: 0; margin-right: .5rem; font-size: large; color: red;"> 
+                                                                                                                <span style="margin: 0; font-size: small;"> ${features.properties.magType} <span/>
+                                                                                                                ${features.properties.mag}
+                                                                                                    </h2>
+                                                                                                </div>
                                                                                                 
+                                                                                                
+                                                                                                <div class='class="col align-center"'>
+
+                                                                                                        <h4 margin=0. margin-bottom=.5rem>Place :${features.properties.place}</h4>
+                                                                                                                                                                                                        
+                                                                                                        <h4 style="margin:0.">Latidude :${features.geometry.coordinates[0]} Longitude : ${features.geometry.coordinates[1]}</h4>
+                                                                                                        
+                                                                                                        <h4 style="margin:0.">Depth : ${features.geometry.coordinates[2]}-km</h4>                     
+                                                                                                        
+                                                                                                        <a href="${features.properties.url}" target=_blank style="margin:0."> Details </a>
+                                                                                                </div>   
                                                                                              </div>
                                                                                         </div>
                                                                                     `)
-                                                                    }
                                 """)
 
 
@@ -125,23 +129,10 @@ on_each_feature_events = assign("""function(features, layer, context){
 point_to_layer_events = assign("""function(feature, latlng, context){
     const {min, max, colorscale, circleOptions, colorProp} = context.props.hideout;
     const csc = chroma.scale(colorscale).domain([min, max]);  // chroma lib to construct colorscale
-    circleOptions.fillColor = csc(feature.geometry.coordinates[colorProp]);  // set color based on color prop
+    circleOptions.fillColor = csc(feature.properties.depth);  // set color based on color prop
     circleOptions.radius    = feature.properties.mag * 2;  // set color based on color prop
-    circleOptions.fillOpacity = 0.;
     return new L.circleMarker(latlng,circleOptions);  // render a simple circle marker
 }""")
-
-
-# handle_style = assign("""function(feature, context){
-#         const {classes, colorscale, style,  colorProp} = context.props.hideout;  // get props from hideout
-#         const value = feature.properties[colorProp];  // get value the determines the color
-#         for (let i = 0; i < classes.length; ++i) {
-#             if (value > classes[i]) {
-#                 style.fillColor = colorscale[i];  // set the fill color according to the class
-#             }
-#         }
-#         return style;
-#     }""")
 
 # geojson options ["pointToLayer", "style", "onEachFeature", "filter", "coordsToLatLng"]
 # from dash_extensions.javascript import Namespace
@@ -150,23 +141,14 @@ events = dl.GeoJSON(data=usgs_geojson,
                     zoomToBounds=True,  # when true, zooms to bounds when data changes
                     zoomToBoundsOnClick=True, # when true, zooms to bounds of feature (e.g. cluster) on click
                     options=dict(pointToLayer = point_to_layer_events,
-                                 onEachFeature=on_each_feature_events,
-                                 interactive = True),
+                                 onEachFeature=on_each_feature_events),
                     id='EventsUSGS',
-                    hideout=dict(colorProp=2,
-                                 circleOptions=dict(stroke=True, weight = 1),
+                    hideout=dict(colorProp='depth',
+                                 circleOptions=dict(fillOpacity = 0.6,stroke=True, weight = 1),
                                  min=vmin, 
                                  max=vmax, 
-                                 colorscale=colorscale)
+                                 colorscale=colorscale),
                     )
-
-# Initialize Dash app
-# =======================================================================================================
-app = Dash(__name__,
-           
-           prevent_initial_callbacks=True,
-           assets_folder=f"{os.getcwd()}/assets"
-           )
 
 # Create Layout
 # =======================================================================================================
@@ -176,7 +158,7 @@ layersControl = dl.LayersControl([
                                         dl.LayerGroup(dl.TileLayer(url="https://cartodb-basemaps-{s}.global.ssl.fastly.net/light_nolabels/{z}/{x}/{y}.png",id="TileMap")
                                         ),
                                         name="BaseMap",
-                                        checked=True
+                                        checked=False
                                         ),
                                     
                                     # Ülke sınırlarının geojson gösterim layer ı
@@ -228,11 +210,9 @@ map_Div = html.Div([
                                            children=[  dl.TileLayer(),
                                                         dl.FullscreenControl(),
                                                         dl.MeasureControl(position="topleft", primaryLengthUnit="kilometers", primaryAreaUnit="hectares",activeColor="#214097", completedColor="#972158"),
-                                                        layersControl,
-                                                        dl.LayerGroup(events),
+                                                        dl.Pane(layersControl,style=dict(zIndex="998")),
+                                                        dl.Pane(events,style=dict(zIndex="999")),
                                                         colorbar,
-                                                        
-                                                        
                                                     ],
                                             )
                                     
@@ -244,22 +224,17 @@ map_Div = html.Div([
                 ],
         className='main_div')
 
-table = dash_table.DataTable(
-    df_usgs.to_dict("records"),
-    [{"name": i, "id": i} for i in df_usgs.columns],
-    filter_action="native",
-    filter_options={"placeholder_text": "Filter column..."},
-    page_size=10,
-)
-
-container_map = html.Div([map_Div,table],className='container')
+container_map = html.Div([Title,
+                          map_Div,
+                          ],
+                         className='container')
 
 def layout():
     return html.Div([container_map])
 
 # Callback functions
 # =======================================================================================================
-@app.callback(Output("info","children"), Input("county","hover_feature"))
+@callback(Output("info","children"), Input("county","hover_feature"))
 def info_hover(feature):
     return Get_Info(feature,headtext="Country")
 
