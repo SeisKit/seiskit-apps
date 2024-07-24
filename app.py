@@ -9,7 +9,9 @@ from applications.seisEvents import seisEvents
 
 # External Style
 chroma = "https://cdnjs.cloudflare.com/ajax/libs/chroma-js/2.1.0/chroma.min.js"
-app = Dash(__name__,external_scripts=[chroma],
+app = Dash(__name__,
+           external_scripts=[chroma],
+           external_stylesheets=['https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css'],
            suppress_callback_exceptions=True, 
            title="SeisKit"
            )

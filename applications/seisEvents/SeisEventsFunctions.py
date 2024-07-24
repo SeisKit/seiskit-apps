@@ -26,7 +26,7 @@ def GetFDSNEventsLastTwoDays(StartTime : UTCDateTime = None, EndTime: UTCDateTim
     start_time = UTCDateTime.now() - 48*3600 #1 day ago
     end_time   = UTCDateTime.now()
 
-    min_magnitude = 1.0
+    min_magnitude = 0.0
 
     events = client.get_events(starttime=start_time,endtime=end_time,minmagnitude=min_magnitude,**kwargs)
 
@@ -41,7 +41,7 @@ def FDSN_EventsToDataFrame(Events : Catalog)->pd.DataFrame:
     # store data to dataframe
     #
 
-    feature_list = ['OriginTime', 'Lat', 'Lon', 'depth', 'event_type', 'mag', 'magnitude_type', 'creation_info', 'info']
+    feature_list = ['OriginTime', 'Lat', 'Lon', 'depth', 'mag', 'magnitude_type']
 
     df = pd.DataFrame(0, index=np.arange(len(Events)), columns=feature_list)
     for ii in range (0, len(Events)):
@@ -49,12 +49,9 @@ def FDSN_EventsToDataFrame(Events : Catalog)->pd.DataFrame:
         df['OriginTime'].loc[ii]        = Events[ii].origins[0].time
         df['Lat'].loc[ii]               = Events[ii].origins[0].latitude
         df['Lon'].loc[ii]               = Events[ii].origins[0].longitude
-        df['depth'].loc[ii]             = Events[ii].origins[0].depth    
-        df['event_type'].loc[ii]        = Events[ii].event_type   
+        df['depth'].loc[ii]             = Events[ii].origins[0].depth 
         df['mag'].loc[ii]               = Events[ii].magnitudes[0].mag     
-        df['magnitude_type'].loc[ii]    = Events[ii].magnitudes[0].magnitude_type    
-        df['creation_info'].loc[ii]     = Events[ii].origins[0].creation_info 
-        df['info'].loc[ii]              = Events[ii].event_descriptions[0].text 
+        df['magnitude_type'].loc[ii]    = Events[ii].magnitudes[0].magnitude_type
 
     return df
 
@@ -159,7 +156,7 @@ def GetAfadEvents2(Geom : object  = None, Depth : DepthFilter = None, StartTime 
         StartTime (datetime, optional): _description_. Defaults to None.
         EndTime (datetime, optional): _description_. Defaults to None.
         Magnitude (MagnitudeFilter, optional): _description_. Defaults to None.
-        FormatType (str, optional): _description_. Defaults to 'JSON'.
+        FormatType (str, optional): Output formatted type : XML,CSV,KML,GEOJSON,JSON. Defaults to 'JSON'.
         OrderBy (str, optional): _description_. Defaults to 'timedesc'.
 
     Returns:
@@ -186,6 +183,22 @@ def GetAfadEvents2(Geom : object  = None, Depth : DepthFilter = None, StartTime 
             data = response.read()
     data = json.loads(data)
     return data
+
+def AfadEventsToDataFrame(afad_geojson : list)->pd.DataFrame:
+    
+    feature_list = ['OriginTime', 'Lat', 'Lon', 'depth', 'mag', 'magnitude_type', 'creation_info', 'info']
+
+    feature_list = ['OriginTime', 'Lat', 'Lon', 'depth','mag', 'magnitude_type']
+    df = pd.DataFrame(0, index=np.arange(len(afad_geojson[0]['features'])), columns=feature_list)
+    for ii in range (0, len(afad_geojson[0]['features'])):
+            df['OriginTime'].loc[ii] = pd.to_datetime(afad_geojson[0]['features'][ii]['properties']['Date'])
+            df['Lat'].loc[ii]               = afad_geojson[0]['features'][ii]["properties"]['Latitude']
+            df['Lon'].loc[ii]               = afad_geojson[0]['features'][ii]["properties"]['Longitude']
+            df['depth'].loc[ii]             = afad_geojson[0]['features'][ii]["properties"]['Depth']
+            df['mag'].loc[ii]               = afad_geojson[0]['features'][ii]["properties"]['Magnitude']
+            df['magnitude_type'].loc[ii]    = afad_geojson[0]['features'][ii]["properties"]['Type']
+
+    return df
 
 def GetAfadEventsByEventId(EventId : int,FormatType : str = 'JSON') -> Any:
     """_summary_
@@ -254,37 +267,33 @@ def GetUSGSEvents(Geom : object  = None, Depth : DepthFilter = None, StartTime :
     return data
 
 def USGS_EventsDataToDataFrame(data : dict)->pd.DataFrame:
-    feature_list = ['OriginTime', 'Lat', 'Lon', 'depth', 'event_type', 'mag', 'magnitude_type', 'place', 'url', 'urldetails']
+    feature_list = ['OriginTime', 'Lat', 'Lon', 'depth','mag', 'magnitude_type']
     df = pd.DataFrame(0, index=np.arange(len(data['features'])), columns=feature_list)
     for ii in range (0, len(data['features'])):
             df['OriginTime'].loc[ii] = pd.to_datetime(data['features'][ii]['properties']['time'], unit='ms').strftime('%y/%m/%d %H:%M:%S')
             df['Lat'].loc[ii]               = data['features'][ii]['geometry']['coordinates'][0]
             df['Lon'].loc[ii]               = data['features'][ii]['geometry']['coordinates'][1]
-            df['depth'].loc[ii]             = data['features'][ii]['geometry']['coordinates'][2]   
-            df['event_type'].loc[ii]        = data['features'][ii]['properties']['type']
+            df['depth'].loc[ii]             = data['features'][ii]['geometry']['coordinates'][2]
             df['mag'].loc[ii]               = data['features'][ii]['properties']['mag']
-            df['magnitude_type'].loc[ii]    = data['features'][ii]['properties']['magType']    
-            df['place'].loc[ii]             = data['features'][ii]['properties']['place']
-            df['url'].loc[ii]               = data['features'][ii]['properties']['url']
-            df['urldetails'].loc[ii]        = data['features'][ii]['properties']['detail']
+            df['magnitude_type'].loc[ii]    = data['features'][ii]['properties']['magType']
     return df
 
 
 
-if __name__ == "__main__":
+# if __name__ == "__main__":
     
-# #     # from obspy import UTCDateTime
-# #     # start_time  = UTCDateTime.now() - 24*3600 #1 day ago
-# #     # end_time    = UTCDateTime.now()
-# #     # recFilter   = RectangularFilter(minLat=39,maxLat=41,minLon=32,maxLon=34)
-# #     # radFilter   = RadialFilter(Lat=33,Lon=40,maxRad=100_000,minRad=50_000)
-# #     # depthFilter = DepthFilter(MinDepth=1,MaxDepth=8)
-# #     # mgFilter    = MagnitudeFilter('mb',7,1)
-# #     # Data        = GetAfadEventsLastTwoDays()
-# #     # event       = GetAfadEventsByEventId(EventId=632764,FormatType='GEOJSON')
-# #     # print(event)
-# #     # df          = GetFDSNEventsLastTwoDays()
-# #     # print(df)
-# #     # events = GetUSGSEvents(Geom=recFilter)
-    eventData = GetUSGSEvents()
-    df_USGS = USGS_EventsDataToDataFrame(eventData)
+# # #     # from obspy import UTCDateTime
+# # #     # start_time  = UTCDateTime.now() - 24*3600 #1 day ago
+# # #     # end_time    = UTCDateTime.now()
+# # #     # recFilter   = RectangularFilter(minLat=39,maxLat=41,minLon=32,maxLon=34)
+# # #     # radFilter   = RadialFilter(Lat=33,Lon=40,maxRad=100_000,minRad=50_000)
+# # #     # depthFilter = DepthFilter(MinDepth=1,MaxDepth=8)
+# # #     # mgFilter    = MagnitudeFilter('mb',7,1)
+# # #     # Data        = GetAfadEventsLastTwoDays()
+# # #     # event       = GetAfadEventsByEventId(EventId=632764,FormatType='GEOJSON')
+# # #     # print(event)
+# # #     # df          = GetFDSNEventsLastTwoDays()
+# # #     # print(df)
+# # #     # events = GetUSGSEvents(Geom=recFilter)
+#     eventData = GetUSGSEvents()
+#     df_USGS = USGS_EventsDataToDataFrame(eventData)
