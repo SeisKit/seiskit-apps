@@ -171,7 +171,7 @@ point_to_layer_USGSevents = assign("""function(feature, latlng, context){
     return new L.circleMarker(latlng,circleOptions);  // render a simple circle marker
 }""")
 
-point_to_layer_AFADevents = assign("""function(feature, latlng, context){
+point_to_layer_AFADevents = assign("""function(features, latlng, context){
     
     const {min, max, colorscale, circleOptions, colorProp} = context.hideout;
     const csc = chroma.scale(colorscale).domain([min, max]);  // chroma lib to construct colorscale
@@ -184,9 +184,9 @@ point_to_layer_AFADevents = assign("""function(feature, latlng, context){
 # geojson options ["pointToLayer", "style", "onEachFeature", "filter", "coordsToLatLng"]
 # from dash_extensions.javascript import Namespace
 # ns = Namespace("dashExtensions","default")
-events = dl.GeoJSON(data=usgs_geojson,
+events_usgs = dl.GeoJSON(data=usgs_geojson,
                     cluster=True,
-                    superClusterOptions={"radius": 90},
+                    superClusterOptions={"radius": 60},
                     zoomToBounds=True,  # when true, zooms to bounds when data changes
                     zoomToBoundsOnClick=True, # when true, zooms to bounds of feature (e.g. cluster) on click
                     
@@ -201,6 +201,22 @@ events = dl.GeoJSON(data=usgs_geojson,
                                  colorscale=colorscale),
                     )
 
+events_afad = dl.GeoJSON(data=afad_geojson[0],
+                    cluster=True,
+                    superClusterOptions={"radius": 60},
+                    zoomToBounds=True,  # when true, zooms to bounds when data changes
+                    zoomToBoundsOnClick=True, # when true, zooms to bounds of feature (e.g. cluster) on click
+                    
+                    options=dict(pointToLayer = point_to_layer_AFADevents,
+                                 onEachFeature=on_each_feature_AFADevents),
+                    id='EventsUSGS',
+                    hideout=dict(
+                                 colorProp='depth',
+                                 circleOptions=dict(fillOpacity = 0.6,stroke=True, weight = 1),
+                                 min=vmin, 
+                                 max=vmax, 
+                                 colorscale=colorscale),
+                    )
 
 # Create Layout
 # =======================================================================================================
@@ -271,6 +287,7 @@ filter = html.Div([
                     
             ])
 
+#TODO Bilgi girişi için ilk aşamada drawer koydum belki direk ekrana gömülü bir formda hazırlanabilir. Buradaki veri girişine göre hem harita hemde tablo güncellenmeli.
 drawer = html.Div(
                     [
                         # dmc.Button("Open Drawer", id="drawer-demo-button"),
@@ -295,6 +312,7 @@ drawer = html.Div(
                     ]
                 )
 
+
 layersControl = dl.LayersControl([
                                     # BaseMap gösterim layer ı
                                     dl.Overlay(
@@ -303,7 +321,8 @@ layersControl = dl.LayersControl([
                                         name="BaseMap",
                                         checked=False
                                         ),
-                                    
+                                    #TODO Ülke sınırlarını layer içerisine gömdüm opsiyonel olarak açılabiliyor bunu belki direk haritaya gömebiliriz
+                                    #BUG ülke sınırlarını açınca deprem verilerinin üzerine çıkıyor ve tıklanamaz hale geliyor. zIndex tanımlaması olayo çözmedi buradaki problem js kodları içerisinde bunu açınsa en öne bunu koyması.
                                     # Ülke sınırlarının geojson gösterim layer ı
                                     dl.Overlay(
                                         dl.LayerGroup([countries,info],id="Countries"),
@@ -337,7 +356,7 @@ map_Div = html.Div([
                                            children=[  dl.TileLayer(),
                                                         dl.FullScreenControl(),
                                                         dl.MeasureControl(position="topleft", primaryLengthUnit="kilometers", primaryAreaUnit="hectares",activeColor="#214097", completedColor="#972158"),
-                                                        events,
+                                                        events_usgs,
                                                         layersControl,
                                                         colorbar,
                                                     ],
@@ -351,56 +370,78 @@ map_Div = html.Div([
                 ],
         className='main_div')
 
-table = dbc.Container([
+#TODO tablo ile ilgili görselleştirme ayarları yapılmalı. Tablodaki filtreleme,sıralama vb işlemler client tarafında mı yoksa backendde python ile mi yapılacak. Büyük veride client tarafı yavaş kalır, pythona geçmek lazım.
+table = dbc.Container(
+    [
                         # dbc.Label('Click a cell in the table:'),
-                        dash_table.DataTable(
-                                                df_usgs.to_dict('records'),
-                                                [{"name": i, "id": i} for i in df_usgs.columns], 
-                                                id='tbl',
-                                                page_current=0,
-                                                page_size=20,
-                                                page_action='custom',
+                        # dash_table.DataTable(
+                        #                         df_usgs.to_dict('records'),
+                        #                         [{"name": i, "id": i} for i in df_usgs.columns], 
+                        #                         id='tbl',
+                        #                         page_current=0,
+                        #                         page_size=20,
+                        #                         page_action='custom',
 
-                                                filter_action='custom',
-                                                filter_query='',
+                        #                         filter_action='custom',
+                        #                         filter_query='',
 
-                                                sort_action='custom',
-                                                sort_mode='multi',
-                                                sort_by=[],
+                        #                         sort_action='custom',
+                        #                         sort_mode='multi',
+                        #                         sort_by=[],
                                                 
-                                                style_cell_conditional=[
-                                                                            {
-                                                                                'if': {'column_id': c},
-                                                                                'textAlign': 'left'
-                                                                            } for c in ['mag', 'depth']
-                                                                        ],                                               
-                                                style_header={
-                                                                'backgroundColor': 'rgb(210, 210, 210)',
-                                                                'color': 'black',
-                                                                'fontWeight': 'bold'
-                                                            },
-                                                style_data_conditional=[
-                                                                        {
-                                                                            'if': {'filter_query': '{{mag}} = {}'.format(df_usgs['mag'].max()) },
-                                                                                        'backgroundColor': '#0074D9',
-                                                                                        'color': 'white'
-                                                                        },
+                        #                         style_cell_conditional=[
+                        #                                                     {
+                        #                                                         'if': {'column_id': c},
+                        #                                                         'textAlign': 'left'
+                        #                                                     } for c in ['mag', 'depth']
+                        #                                                 ],                                               
+                        #                         style_header={
+                        #                                         'backgroundColor': 'rgb(210, 210, 210)',
+                        #                                         'color': 'black',
+                        #                                         'fontWeight': 'bold'
+                        #                                     },
+                        #                         style_data_conditional=[
+                        #                                                 {
+                        #                                                     'if': {'filter_query': '{{mag}} = {}'.format(df_usgs['mag'].max()) },
+                        #                                                                 'backgroundColor': '#0074D9',
+                        #                                                                 'color': 'white'
+                        #                                                 },
                                                                         
-                                                                        {
-                                                                            'if': {
-                                                                                'filter_query': '{{mag}} = {}'.format(df_usgs['mag'].max()),
-                                                                            },
-                                                                                'color': 'tomato',
-                                                                                'fontWeight': 'bold'
-                                                                        },
-                                                                        {
-                                                                            'if':{'row_index' : 'odd'},
-                                                                                'backgroundColor':'rgb(220,220,220)'
-                                                                        }
-                                                                    ]
-                                            ),
+                        #                                                 {
+                        #                                                     'if': {
+                        #                                                         'filter_query': '{{mag}} = {}'.format(df_usgs['mag'].max()),
+                        #                                                     },
+                        #                                                         'color': 'tomato',
+                        #                                                         'fontWeight': 'bold'
+                        #                                                 },
+                        #                                                 {
+                        #                                                     'if':{'row_index' : 'odd'},
+                        #                                                         'backgroundColor':'rgb(220,220,220)'
+                        #                                                 }
+                        #                                             ]
+                        #                     ),
                         # dbc.Alert(id='tbl_out'),
-                    ])
+                        dash_table.DataTable(
+                                                id='datatable-interactivity',
+                                                columns=[
+                                                    {"name": i, "id": i, "deletable": True, "selectable": True} for i in df_usgs.columns
+                                                ],
+                                                data=df_usgs.to_dict('records'),
+                                                editable=True,
+                                                filter_action="native",
+                                                sort_action="native",
+                                                sort_mode="multi",
+                                                column_selectable="single",
+                                                row_selectable="multi",
+                                                row_deletable=True,
+                                                selected_columns=[],
+                                                selected_rows=[],
+                                                page_action="native",
+                                                page_current= 0,
+                                                page_size= 10,
+                                            ),
+                    ]
+                      ,id='table-events')
 
 container = html.Div(children=[dbc.Row(Title),
                                 dbc.Container(
@@ -433,16 +474,92 @@ def layout():
 
 # Map controls
 # =======================================================================================
+#BUG Ülke sınırları kapalı olduğu halde gözüküyor. 
 @callback(Output("info","children"), Input("county","hover_feature"))
 def info_hover(feature):
     return Get_Info(feature,headtext="Country")
       
+@callback(Output("map","children"),Output("table-events","children"), Input("webservice","value"))
+def update_map(value):
+    children = []
+    table_chd = []
+    if value == 'USGS':
+    
+        children=[  dl.TileLayer(),
+                    dl.FullScreenControl(),
+                    dl.MeasureControl(position="topleft", primaryLengthUnit="kilometers", primaryAreaUnit="hectares",activeColor="#214097", completedColor="#972158"),
+                    events_usgs,
+                    layersControl,
+                    colorbar,
+                ]
+        table_chd = [
+                        dash_table.DataTable(
+                                                            id='datatable-interactivity',
+                                                            columns=[
+                                                                {"name": i, "id": i, "deletable": True, "selectable": True} for i in df_usgs.columns
+                                                            ],
+                                                            data=df_usgs.to_dict('records'),
+                                                            editable=True,
+                                                            filter_action="native",
+                                                            sort_action="native",
+                                                            sort_mode="multi",
+                                                            column_selectable="single",
+                                                            row_selectable="multi",
+                                                            row_deletable=True,
+                                                            selected_columns=[],
+                                                            selected_rows=[],
+                                                            page_action="native",
+                                                            page_current= 0,
+                                                            page_size= 10,
+                                                        )
+                    ]
+    if value == 'AFAD':
+    
+        children=[  dl.TileLayer(),
+                    dl.FullScreenControl(),
+                    dl.MeasureControl(position="topleft", primaryLengthUnit="kilometers", primaryAreaUnit="hectares",activeColor="#214097", completedColor="#972158"),
+                    events_afad,
+                    layersControl,
+                    colorbar,
+                ]
+        table_chd = [
+                        dash_table.DataTable(
+                                                            id='datatable-interactivity',
+                                                            columns=[
+                                                                {"name": i, "id": i, "deletable": True, "selectable": True} for i in df_afad.columns
+                                                            ],
+                                                            data=df_afad.to_dict('records'),
+                                                            editable=True,
+                                                            filter_action="native",
+                                                            sort_action="native",
+                                                            sort_mode="multi",
+                                                            column_selectable="single",
+                                                            row_selectable="multi",
+                                                            row_deletable=True,
+                                                            selected_columns=[],
+                                                            selected_rows=[],
+                                                            page_action="native",
+                                                            page_current= 0,
+                                                            page_size= 10,
+                                                        )
+                    ]
+    return children,table_chd
 
 # Table controls
 # =======================================================================================
 # @callback(Output('tbl_out', 'children'), Input('tbl', 'active_cell'))
 # def update_graphs(active_cell):
 #     return str(active_cell) if active_cell else "Click the table"
+
+@callback(
+    Output('datatable-interactivity', 'style_data_conditional'),
+    Input('datatable-interactivity', 'selected_columns')
+)
+def update_styles(selected_columns):
+    return [{
+        'if': { 'column_id': i },
+        'background_color': '#D2F3FF'
+    } for i in selected_columns]
 
 operators = [['ge ', '>='],
              ['le ', '<='],
@@ -476,6 +593,7 @@ def split_filter_part(filter_part):
 
     return [None] * 3
 
+#BUG Pagination da en son sayfaya gitmiyor ve boş sayfalar oluşuyor.
 @callback(
     Output('tbl', 'data'),
     Input('tbl', "page_current"),
@@ -484,7 +602,7 @@ def split_filter_part(filter_part):
     Input('tbl', 'filter_query'))
 def update_table(page_current, page_size, sort_by, filter):
     filtering_expressions = filter.split(' && ')
-    dff = df_usgs
+    dff = df_afad
     for filter_part in filtering_expressions:
         col_name, operator, filter_value = split_filter_part(filter_part)
 
@@ -516,6 +634,7 @@ def update_table(page_current, page_size, sort_by, filter):
 # Drawer controls
 # =======================================================================================
 
+#TODO Hem başlangıç zamanı hem de bitiş zamanı için kontroller yazılmalı.
 @callback(Output("datepicker-error", "error"), Input("datepicker-error", "value"))
 def datepicker_error(date):
     day = datetime.strptime(date, "%Y-%M-%d").day

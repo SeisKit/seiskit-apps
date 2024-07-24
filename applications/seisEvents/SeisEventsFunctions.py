@@ -186,8 +186,6 @@ def GetAfadEvents2(Geom : object  = None, Depth : DepthFilter = None, StartTime 
 
 def AfadEventsToDataFrame(afad_geojson : list)->pd.DataFrame:
     
-    feature_list = ['OriginTime', 'Lat', 'Lon', 'depth', 'mag', 'magnitude_type', 'creation_info', 'info']
-
     feature_list = ['OriginTime', 'Lat', 'Lon', 'depth','mag', 'magnitude_type']
     df = pd.DataFrame(0, index=np.arange(len(afad_geojson[0]['features'])), columns=feature_list)
     for ii in range (0, len(afad_geojson[0]['features'])):
@@ -197,7 +195,7 @@ def AfadEventsToDataFrame(afad_geojson : list)->pd.DataFrame:
             df['depth'].loc[ii]             = afad_geojson[0]['features'][ii]["properties"]['Depth']
             df['mag'].loc[ii]               = afad_geojson[0]['features'][ii]["properties"]['Magnitude']
             df['magnitude_type'].loc[ii]    = afad_geojson[0]['features'][ii]["properties"]['Type']
-
+    df['OriginTime'] = df['OriginTime'].astype('datetime64[D]')
     return df
 
 def GetAfadEventsByEventId(EventId : int,FormatType : str = 'JSON') -> Any:
@@ -276,6 +274,7 @@ def USGS_EventsDataToDataFrame(data : dict)->pd.DataFrame:
             df['depth'].loc[ii]             = data['features'][ii]['geometry']['coordinates'][2]
             df['mag'].loc[ii]               = data['features'][ii]['properties']['mag']
             df['magnitude_type'].loc[ii]    = data['features'][ii]['properties']['magType']
+    df['OriginTime'] = df['OriginTime'].astype('datetime64[D]')
     return df
 
 
