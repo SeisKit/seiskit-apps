@@ -1,11 +1,13 @@
-from datetime import datetime, date, timedelta
+from datetime import datetime,timedelta
+import time
+from matplotlib.colorbar import Colorbar
 import numpy as np
 from pandas import DataFrame
-from applications.seisEvents.ids import DRAWERBUTTON, DRAWERFANCY
+from applications.seisEvents.drawer import Create_Drawer
+from applications.seisEvents.ids import BASEMAP, COUNTRIES, DRAWERBUTTON, DRAWERFANCY, INFO, MAP, MAPDIV, TECHTONICPLATES, TURKEYFAULTS
 from applications.seisEvents.seisEventsFunctions import AfadEventsToDataFrame, DepthFilter, FDSN_EventsToDataFrame, GetAfadEvents2, GetFDSNEventsLastTwoDays, MagnitudeFilter, USGS_EventsDataToDataFrame,GetUSGSEvents
 import dash_bootstrap_components as dbc
-from dash import dcc,html,Input, Output,dash_table,callback,no_update
-from dash.dependencies import Input, Output
+from dash import dcc,html,Input, Output,dash_table,callback,no_update,State
 import dash_leaflet as dl
 import dash_mantine_components as dmc
 from dash_iconify import DashIconify
@@ -27,12 +29,6 @@ Title = dmc.Text(html.H2("SEISEVENTS"), className='fs-3 mx-3 mb-3 mt-3')
 # Colorbar control for earthquake events locations
 # =======================================================================================================
 
-def create_colorscale(color1 : str, color2 : str, n_colors : int)->list:
-    color1_ = [int(i) for i in color1[4:-1].split(",")]
-    color2_ = [int(i) for i in color2[4:-1].split(",")]
-    colors_ = np.linspace(start=color1_, stop=color2_, num=n_colors)
-    colors  = [str(f"rgb{int(i[0]), int(i[1]), int(i[2])}") for i in colors_]
-    return colors
 
 classes=[10,20,40,60,80,100,120]
 # ylorrd "Viridis"
@@ -48,6 +44,7 @@ ctg = ["{}+".format(cls, classes[i + 1]) for i, cls in enumerate(classes[:-1])] 
 colorbar = dlx.categorical_colorbar(categories=ctg, colorscale=colorscale, width=300, height=10, position="bottomright")
 
 
+
 # Get Info Data
 # =======================================================================================================
 def Get_Info(feature = None, headtext : str = ""):
@@ -58,7 +55,7 @@ def Get_Info(feature = None, headtext : str = ""):
 
 # Create Info Control
 # =======================================================================================================
-info = html.Div(children=Get_Info(), id="info", className="info", style={"position" : "absolute", "top" : "430px", "left" : "10px", "zIndex" : "9000"})
+info = html.Div(children=Get_Info(), id=INFO, className="info", style={"position" : "absolute", "top" : "430px", "left" : "10px", "zIndex" : "9000"})
 
 
 
@@ -119,6 +116,7 @@ on_each_feature_AFADevents = assign("""function(features, layer, context){
                                                                                                 
                                                                                                 
                                                                                                 <div class='class="col align-center"'>
+                                                                                                        <h4 margin=0. margin-bottom=.5rem>Date :${features.properties.Date}</h4>
                                                                                    
                                                                                                         <h4 style="margin:0.">Latidude :${features.geometry.coordinates[0]} Longitude : ${features.geometry.coordinates[1]}</h4>
                                                                                                         
@@ -177,9 +175,10 @@ point_to_layer_AFADevents = assign("""function(features, latlng, context){
     const csc = chroma.scale(colorscale).domain([min, max]);  // chroma lib to construct colorscale
     circleOptions.fillColor = csc(features.properties.Depth);  // set color based on color prop
     circleOptions.radius    = features.properties.Magnitude * 2;  // set color based on color prop
-    
-    return new L.circleMarker(latlng,circleOptions);  // render a simple circle marker
+    return new L.circleMarker([features.properties.Latitude,features.properties.Longitude],circleOptions);  // render a simple circle marker
 }""")
+
+
 
 # geojson options ["pointToLayer", "style", "onEachFeature", "filter", "coordsToLatLng"]
 # from dash_extensions.javascript import Namespace
@@ -202,14 +201,14 @@ events_usgs = dl.GeoJSON(data=usgs_geojson,
                     )
 
 events_afad = dl.GeoJSON(data=afad_geojson[0],
-                    cluster=True,
-                    superClusterOptions={"radius": 60},
+                    # cluster=True,
+                    # superClusterOptions={"radius": 6},
                     zoomToBounds=True,  # when true, zooms to bounds when data changes
                     zoomToBoundsOnClick=True, # when true, zooms to bounds of feature (e.g. cluster) on click
                     
                     options=dict(pointToLayer = point_to_layer_AFADevents,
                                  onEachFeature=on_each_feature_AFADevents),
-                    id='EventsUSGS',
+                    id='EventsAFAD',
                     hideout=dict(
                                  colorProp='depth',
                                  circleOptions=dict(fillOpacity = 0.6,stroke=True, weight = 1),
@@ -218,136 +217,59 @@ events_afad = dl.GeoJSON(data=afad_geojson[0],
                                  colorscale=colorscale),
                     )
 
-# Create Layout
+
+
+# Create Application View
 # =======================================================================================================
 
-datePicker = dmc.Group( 
-                        [
-                            
-                            dmc.DatePicker(
-                                                id="datepicker-error",
-                                                value=datetime.now().date()- timedelta(days=2),
-                                                label="Start Date",
-                                                required=True,
-                                                clearable=False,
-                                                w=200,
-                                        ),
-                                                
-                            dmc.DatePicker(
-                                                id="datepicker-error",
-                                                value=datetime.now().date(),
-                                                label="End Date",
-                                                required=True,
-                                                clearable=False,
-                                                w=200,
-                                        )
-                                                
-                            
-                        ]
-                        
-                    )
+# Create Drawer
+# ======================================
+drawer = Create_Drawer()
 
-dropDown = html.Div([
-                        dbc.Label("Earthquake Web Services"),
-                        dcc.Dropdown(id="webservice", options=["USGS", "AFAD"], value="USGS", clearable=False, className="mb-2 mt-1 text-black")
-    ])
-
-magRangeSlider = html.Div([
-                        dbc.Label("Magnitude Range"),
-                        dmc.RangeSlider(
-                                        id="magnitudeRangeInput",
-                                        value=[3.0, 10.0],
-                                        marks=[
-                                            {"value": 0.0, "label": "0"},
-                                            {"value": 12.0, "label": "12"}
-                                        ],
-                                        min=0.0,
-                                        max=12.0,
-                                        step=0.1,
-                                        minRange=0.5,
-                                        precision=1,
-                                        showLabelOnHover=True,
-                                        className="mt-2 mb-4"
-                                    ),
-                    ])
-
-buttonSearch = html.Div(dmc.Button("Search", id="event-search-button", loaderProps=dict(type = "dots"), variant="gradient"), className="d-grid gap-2 d-md-flex justify-content-md-end")
-
-stack = dmc.Stack(children=[datePicker,
-                    html.P(),
-                    dropDown,
-                    html.P(),
-                    magRangeSlider,
-                    html.P(),
-                    buttonSearch],
-                  spacing="xs")
-filter = html.Div([
-                    
-                    stack
-                    
-            ])
-
-#TODO Bilgi girişi için ilk aşamada drawer koydum belki direk ekrana gömülü bir formda hazırlanabilir. Buradaki veri girişine göre hem harita hemde tablo güncellenmeli.
-drawer = html.Div(
-                    [
-                        # dmc.Button("Open Drawer", id="drawer-demo-button"),
-                        dmc.ActionIcon(
-                                        DashIconify(icon="clarity:settings-line", width=20),
-                                                    size="lg",
-                                                    variant="filled",
-                                                    id="drawer-demo-button",
-                                                    n_clicks=0,
-                                                    mb=10,
-                                                ),
-                        dmc.Drawer( children=[
-                                                filter
-                                                
-                                            ],
-                                    title="Search Earthquake",
-                                    id="drawer-simple",
-                                    padding="md",
-                                    size = 500,
-                                    zIndex=10000,
-                                ),
-                    ]
-                )
-
-
+# Create Layers
+# ======================================
 layersControl = dl.LayersControl([
                                     # BaseMap gösterim layer ı
                                     dl.Overlay(
                                         dl.LayerGroup(dl.TileLayer(url="https://cartodb-basemaps-{s}.global.ssl.fastly.net/light_nolabels/{z}/{x}/{y}.png",id="TileMap")
                                         ),
                                         name="BaseMap",
-                                        checked=False
+                                        checked=False,
+                                        id=BASEMAP
                                         ),
                                     #TODO Ülke sınırlarını layer içerisine gömdüm opsiyonel olarak açılabiliyor bunu belki direk haritaya gömebiliriz
-                                    #BUG ülke sınırlarını açınca deprem verilerinin üzerine çıkıyor ve tıklanamaz hale geliyor. zIndex tanımlaması olayo çözmedi buradaki problem js kodları içerisinde bunu açınsa en öne bunu koyması.
+                                    #BUG ülke sınırlarını açınca deprem verilerinin üzerine çıkıyor ve tıklanamaz hale geliyor. zIndex tanımlaması olayı çözmedi buradaki problem js kodları içerisinde bunu açınsa en öne bunu koyması.
                                     # Ülke sınırlarının geojson gösterim layer ı
                                     dl.Overlay(
-                                        dl.LayerGroup([countries,info],id="Countries"),
+                                        dl.LayerGroup([countries,
+                                                       info
+                                                       ],
+                                                      id=COUNTRIES),
                                         name="CountryBorders",
                                         checked=False
                                         ),
                                     
                                     # Tektonik geojson gösterim layer ı
                                     dl.Overlay(
-                                        dl.LayerGroup(techtonicPlates,id="TechtonicPlt"),
+                                        dl.LayerGroup(techtonicPlates,id=TECHTONICPLATES),
                                         name="TecthonicPlates",
                                         checked=False
                                         ),
                                     # Tr diri fay hattı gösterim layer ı
                                     dl.Overlay(
-                                        dl.LayerGroup(trFaults,id="TrFlts"),
+                                        dl.LayerGroup(trFaults,id=TURKEYFAULTS),
                                         name="TrFaults",
                                         checked=False
                                         ),
                                 ])
 
+
+# Create Map
+# ======================================
 map_Div = html.Div([
                     html.Div(
                                 [
-                                    dl.Map( id='map',
+                                    dl.Map( id=MAP,
                                            center = [0,0],
                                            zoom = 4,
                                            doubleClickZoom=True,
@@ -364,12 +286,15 @@ map_Div = html.Div([
                                     
                                 ],
                                 
-                                id='map_div', 
+                                id=MAPDIV, 
                                 className='map_div'
                             )
                 ],
         className='main_div')
 
+
+# Create Table
+# ======================================
 #TODO tablo ile ilgili görselleştirme ayarları yapılmalı. Tablodaki filtreleme,sıralama vb işlemler client tarafında mı yoksa backendde python ile mi yapılacak. Büyük veride client tarafı yavaş kalır, pythona geçmek lazım.
 table = dbc.Container(
     [
@@ -424,7 +349,7 @@ table = dbc.Container(
                         dash_table.DataTable(
                                                 id='datatable-interactivity',
                                                 columns=[
-                                                    {"name": i, "id": i, "deletable": True, "selectable": True} for i in df_usgs.columns
+                                                    {"name": i, "id": i, "deletable": False, "selectable": True} for i in df_usgs.columns
                                                 ],
                                                 data=df_usgs.to_dict('records'),
                                                 editable=True,
@@ -443,7 +368,7 @@ table = dbc.Container(
                     ]
                       ,id='table-events')
 
-container = html.Div(children=[dbc.Row(Title),
+container = html.Div(children=[
                                 dbc.Container(
                                                 [
                                                     dbc.Row(
@@ -464,31 +389,118 @@ container = html.Div(children=[dbc.Row(Title),
                                             )
     ])
 
-def layout():
-    return html.Div([container])
+# Create Layout
+# ======================================
+
+def layout() -> html.Div:
+    return html.Div([dbc.Row(Title),
+                    dmc.Group([
+                                    dmc.ActionIcon(
+                                                        DashIconify(icon="clarity:settings-line", width=20),
+                                                                        size="lg",
+                                                                        variant="filled",
+                                                                        id="drawer-demo-button",
+                                                                        n_clicks=0,
+                                                                        mb=10,
+                                                                    ),
+                                                ]
+                              ),
+                    html.P(),
+                    container
+                                        
+                ])
 
 
 
 # Callback functions
 # =======================================================================================================
 
-# Map controls
+# Info control
 # =======================================================================================
 #BUG Ülke sınırları kapalı olduğu halde gözüküyor. 
-@callback(Output("info","children"), Input("county","hover_feature"))
+@callback(Output("info","children"), Input("county","hoverData"))
 def info_hover(feature):
     return Get_Info(feature,headtext="Country")
-      
-@callback(Output("map","children"),Output("table-events","children"), Input("webservice","value"))
-def update_map(value):
+    
+# Map controls
+# =======================================================================================
+# def create_MarkerPopup(goeJson : DataFrame, index : int) -> html:
+    
+#     popup = dl.Popup([
+#                         html.B("Date :{}".format(goeJson[0]['features'][index]['properties']['Date'])),
+#                         html.Br(),
+#                         html.B("Latidude :{} Longitude : {}".format(goeJson[0]['features'][index]['properties']['Latitude'],goeJson[0]['features'][index]['properties']['Longitude'])),
+#                         html.Br(),
+#                         html.B("Magnitude : {}-{}".format(goeJson[0]['features'][index]['properties']['Magnitude'],goeJson[0]['features'][index]['properties']['Type'])),
+#                         html.Br(),
+#                         html.B("Depth : {}-km".format(goeJson[0]['features'][index]['properties']['Depth'])),
+#                         html.Br(),
+#                         html.Div( children=[html.A('Details' , href=f"https://deprem.afad.gov.tr/apiv2/event/filter?eventid={goeJson[0]['features'][index]['properties']['EventID']}", target="_blank")] )
+#                        ]                                                          
+#                     )
+
+
+@callback(  Output("map","children"),Output("table-events","children"), 
+            Input("event-search-button","n_clicks"),
+            [
+                State('webservice', 'value'),
+                State('endDatePick', 'value'),
+                State('startDatePick', 'value'),
+                State('depthInput', 'value'),
+                State('magnitudeRangeInput', 'value'),
+            ],
+            prevent_initial_call=True,
+            running=[(Output("event-search-button","disabled"),True,False)]
+          )
+def update_map(n_clicks,serviceValue,endDate,startDate,depthValues,magValue):
+
+    # Dates value set
+    # startDate = datetime.strptime(startDate, "%Y-%M-%d")
+    # endDate  = datetime.strptime(endDate, "%Y-%M-%d")
+
+    # # Filter and magnitude value set
+    minDepth = depthValues[0]
+    maxDepth = depthValues[1]
+    filterDepth = DepthFilter(minDepth,maxDepth)
+
+    MaxMag= magValue[1]
+    MinMag= magValue[0]
+    magFilter   = MagnitudeFilter(None,MaxMag,MinMag)
+
+    # # Request service and set response data
+    # usgs_geojson = GetUSGSEvents(Depth=filterDepth,StartTime=startDate,EndTime=endDate,MagnitudeFilter=magFilter)
+    # afad_geojson = GetAfadEvents2(Depth=filterDepth,StartTime=startDate,EndTime=endDate,MagnitudeFilter=magFilter,FormatType='GEOJSON')
+
+    # df_usgs      = USGS_EventsDataToDataFrame(usgs_geojson)
+    # df_afad      = AfadEventsToDataFrame(afad_geojson)
+
+    # Create circle or geojson ım not dicided right now
+    
     children = []
     table_chd = []
-    if value == 'USGS':
-    
+    if serviceValue == 'USGS':
+        usgs_geojson = GetUSGSEvents(Depth=filterDepth, StartTime=startDate,EndTime=endDate, Magnitude=magFilter)
+        df_usgs      = USGS_EventsDataToDataFrame(usgs_geojson)
+        usgsEarthQuake = dl.GeoJSON(data=usgs_geojson,
+                    cluster=True,
+                    superClusterOptions={"radius": 60},
+                    zoomToBounds=True,  # when true, zooms to bounds when data changes
+                    zoomToBoundsOnClick=True, # when true, zooms to bounds of feature (e.g. cluster) on click
+                    
+                    options=dict(pointToLayer = point_to_layer_USGSevents,
+                                 onEachFeature=on_each_feature_USGSevents),
+                    id='EventsUSGS',
+                    hideout=dict(
+                                 colorProp='depth',
+                                 circleOptions=dict(fillOpacity = 0.6,stroke=True, weight = 1),
+                                 min=vmin, 
+                                 max=vmax, 
+                                 colorscale=colorscale),
+                    )
         children=[  dl.TileLayer(),
                     dl.FullScreenControl(),
                     dl.MeasureControl(position="topleft", primaryLengthUnit="kilometers", primaryAreaUnit="hectares",activeColor="#214097", completedColor="#972158"),
-                    events_usgs,
+                    usgsEarthQuake,
                     layersControl,
                     colorbar,
                 ]
@@ -513,12 +525,47 @@ def update_map(value):
                                                             page_size= 10,
                                                         )
                     ]
-    if value == 'AFAD':
-    
+
+    if serviceValue == 'AFAD':
+
+        # # Request service and set response data        
+        afad_geojson = GetAfadEvents2(Depth=filterDepth,StartTime=startDate,EndTime=endDate,Magnitude=magFilter,FormatType='GEOJSON')
+        df_afad      = AfadEventsToDataFrame(afad_geojson)
+        
+        
+        # markers = [  dl.CircleMarker(id       = str(index),
+        #                                 weight   = 2,
+        #                                 stroke   = True,
+        #                                 center   = [df_afad.iloc()[index]["Lat"],df_afad.iloc()[index]["Lon"]],
+        #                                 children = [create_MarkerPopup(afad_geojson,index)],
+        #                                 radius   = df_afad.iloc()[index]['mag']*2,
+        #                                 color    = str(df_afad.iloc()[index]['depth'])
+        #                                         ) 
+        #            for index in range(0,df_afad.last_valid_index())
+
+
+        #        ]
+        afadEarthQuake = dl.GeoJSON(data=afad_geojson[0],
+                    # cluster=True,
+                    # superClusterOptions={"radius": 10},
+                    zoomToBounds=True,  # when true, zooms to bounds when data changes
+                    zoomToBoundsOnClick=True, # when true, zooms to bounds of feature (e.g. cluster) on click
+                    
+                    options=dict(pointToLayer = point_to_layer_AFADevents,
+                                 onEachFeature=on_each_feature_AFADevents),
+                    id='EventsAFAD',
+                    hideout=dict(
+                                 colorProp='depth',
+                                 circleOptions=dict(fillOpacity = 0.6,stroke=True, weight = 1),
+                                 min=vmin, 
+                                 max=vmax, 
+                                 colorscale=colorscale),
+                    )
+        
         children=[  dl.TileLayer(),
                     dl.FullScreenControl(),
                     dl.MeasureControl(position="topleft", primaryLengthUnit="kilometers", primaryAreaUnit="hectares",activeColor="#214097", completedColor="#972158"),
-                    events_afad,
+                    afadEarthQuake,
                     layersControl,
                     colorbar,
                 ]
@@ -547,9 +594,9 @@ def update_map(value):
 
 # Table controls
 # =======================================================================================
-# @callback(Output('tbl_out', 'children'), Input('tbl', 'active_cell'))
-# def update_graphs(active_cell):
-#     return str(active_cell) if active_cell else "Click the table"
+@callback(Output('tbl_out', 'children'), Input('tbl', 'active_cell'))
+def update_graphs(active_cell):
+    return str(active_cell) if active_cell else "Click the table"
 
 @callback(
     Output('datatable-interactivity', 'style_data_conditional'),
@@ -593,49 +640,68 @@ def split_filter_part(filter_part):
 
     return [None] * 3
 
-#BUG Pagination da en son sayfaya gitmiyor ve boş sayfalar oluşuyor.
-@callback(
-    Output('tbl', 'data'),
-    Input('tbl', "page_current"),
-    Input('tbl', "page_size"),
-    Input('tbl', 'sort_by'),
-    Input('tbl', 'filter_query'))
-def update_table(page_current, page_size, sort_by, filter):
-    filtering_expressions = filter.split(' && ')
-    dff = df_afad
-    for filter_part in filtering_expressions:
-        col_name, operator, filter_value = split_filter_part(filter_part)
+#BUG Pagination da en son sayfaya gitmiyor ve boş sayfalar oluşuyor. Şuanlık clientside da ayarlandığı için kullanılmıyor.
+# @callback(
+#     Output('tbl', 'data'),
+#     Input('tbl', "page_current"),
+#     Input('tbl', "page_size"),
+#     Input('tbl', 'sort_by'),
+#     Input('tbl', 'filter_query'))
+# def update_table(page_current, page_size, sort_by, filter):
+#     filtering_expressions = filter.split(' && ')
+#     dff = df_afad
+#     for filter_part in filtering_expressions:
+#         col_name, operator, filter_value = split_filter_part(filter_part)
 
-        if operator in ('eq', 'ne', 'lt', 'le', 'gt', 'ge'):
-            # these operators match pandas series operator method names
-            dff = dff.loc[getattr(dff[col_name], operator)(filter_value)]
-        elif operator == 'contains':
-            dff = dff.loc[dff[col_name].str.contains(filter_value)]
-        elif operator == 'datestartswith':
-            # this is a simplification of the front-end filtering logic,
-            # only works with complete fields in standard format
-            dff = dff.loc[dff[col_name].str.startswith(filter_value)]
+#         if operator in ('eq', 'ne', 'lt', 'le', 'gt', 'ge'):
+#             # these operators match pandas series operator method names
+#             dff = dff.loc[getattr(dff[col_name], operator)(filter_value)]
+#         elif operator == 'contains':
+#             dff = dff.loc[dff[col_name].str.contains(filter_value)]
+#         elif operator == 'datestartswith':
+#             # this is a simplification of the front-end filtering logic,
+#             # only works with complete fields in standard format
+#             dff = dff.loc[dff[col_name].str.startswith(filter_value)]
 
-    if len(sort_by):
-        dff = dff.sort_values(
-                                [col['column_id'] for col in sort_by],
-                                ascending=[
-                                    col['direction'] == 'asc'
-                                    for col in sort_by
-                                ],
-                                inplace=False
-                            )
+#     if len(sort_by):
+#         dff = dff.sort_values(
+#                                 [col['column_id'] for col in sort_by],
+#                                 ascending=[
+#                                     col['direction'] == 'asc'
+#                                     for col in sort_by
+#                                 ],
+#                                 inplace=False
+#                             )
 
-    page = page_current
-    size = page_size
-    return dff.iloc[page * size: (page + 1) * size].to_dict('records')
+#     page = page_current
+#     size = page_size
+#     return dff.iloc[page * size: (page + 1) * size].to_dict('records')
 
 
-# Drawer controls
+# WebService Dropdown controls
 # =======================================================================================
 
+@callback(
+    Output("notifications-container", "children"),
+    Input("webservice", 'value'),
+    prevent_initial_call=True,
+)
+def show(value) -> dmc.Notification | None:
+    if value == 'AFAD':
+        return dmc.Notification(
+            title="Hey there!",
+            id="simple-notify",
+            action="show",
+            message="We can display up to 5 days of data from the AFAD web service.!",
+            icon=DashIconify(icon="feather:info"),
+        )
+
+# # DatePicker controls
+# =======================================================================================
 #TODO Hem başlangıç zamanı hem de bitiş zamanı için kontroller yazılmalı.
-@callback(Output("datepicker-error", "error"), Input("datepicker-error", "value"))
+@callback(Output("startDatePick", "error"), 
+          Input("startDatePick", "value")
+          )
 def datepicker_error(date):
     day = datetime.strptime(date, "%Y-%M-%d").day
     month = int(date.split("-")[1])
@@ -647,6 +713,26 @@ def datepicker_error(date):
     if day > datetime.now().day:
         return "Please select a valid day."
     return ""
+
+#TODO Hem başlangıç zamanı hem de bitiş zamanı için kontroller yazılmalı.
+@callback(Output("endDatePick", "error"), 
+          Input("endDatePick", "value")
+          )
+def datepicker_error(date):
+    day = datetime.strptime(date, "%Y-%M-%d").day
+    month = int(date.split("-")[1])
+    year = datetime.strptime(date, "%Y-%M-%d").year
+    if year > datetime.now().year:
+        return "Please select a valid year."
+    if month > datetime.now().month:
+        return "Please select a valid month."
+    if day > datetime.now().day:
+        return "Please select a valid day."
+    return ""
+
+
+# # Drawer controls
+# =======================================================================================
 
 @callback(
     Output("drawer-simple", "opened"),
