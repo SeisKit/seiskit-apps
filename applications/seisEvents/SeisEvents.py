@@ -695,40 +695,80 @@ def show(value) -> dmc.Notification | None:
             message="We can display up to 5 days of data from the AFAD web service.!",
             icon=DashIconify(icon="feather:info"),
         )
+    if value == 'USGS':
+        return dmc.Notification(
+            title="Hey there! Attention please !!",
+            id="simple-notify",
+            action="show",
+            message="We can display up to maximum twenty thousands of data from the USGS web service!",
+            icon=DashIconify(icon="feather:info"),
+        )
 
 # # DatePicker controls
 # =======================================================================================
-#TODO Hem başlangıç zamanı hem de bitiş zamanı için kontroller yazılmalı.
 @callback(Output("startDatePick", "error"), 
-          Input("startDatePick", "value")
-          )
-def datepicker_error(date):
-    day = datetime.strptime(date, "%Y-%M-%d").day
-    month = int(date.split("-")[1])
-    year = datetime.strptime(date, "%Y-%M-%d").year
-    if year > datetime.now().year:
-        return "Please select a valid year."
-    if month > datetime.now().month:
-        return "Please select a valid month."
-    if day > datetime.now().day:
-        return "Please select a valid day."
-    return ""
-
-#TODO Hem başlangıç zamanı hem de bitiş zamanı için kontroller yazılmalı.
-@callback(Output("endDatePick", "error"), 
+          Input("startDatePick", "value"),
           Input("endDatePick", "value")
           )
-def datepicker_error(date):
-    day = datetime.strptime(date, "%Y-%M-%d").day
-    month = int(date.split("-")[1])
-    year = datetime.strptime(date, "%Y-%M-%d").year
+def datepicker_error(startDate,endDate):
+    response = ""
+    end = datetime.strptime(endDate, "%Y-%M-%d")
+    start = datetime.strptime(startDate, "%Y-%M-%d")
+    yearPeriod = end.year - start.year
+    monthPeriod = int(endDate.split("-")[1]) - int(startDate.split("-")[1])
+    dayPeriod = end.day - start.day
+    
+    if yearPeriod < 0:
+        response = "Please select a valid date"
+
+    if yearPeriod == 0:
+        if monthPeriod <0:
+            response = "Please select a valid date"
+        
+        if monthPeriod == 0:
+            if dayPeriod < 0 :
+                response = "Please select a valid date"
+
+    return response
+        
+
+@callback(Output("endDatePick", "error"), 
+          Input("endDatePick", "value"),
+          Input("startDatePick", "value"),
+          )
+def datepicker_error(endDate, startDate):
+    response = ""
+    end = datetime.strptime(endDate, "%Y-%M-%d")
+    start = datetime.strptime(startDate, "%Y-%M-%d")
+    yearPeriod = end.year - start.year
+    monthPeriod = int(endDate.split("-")[1]) - int(startDate.split("-")[1])
+    dayPeriod = end.day - start.day
+
+    day = datetime.strptime(endDate, "%Y-%M-%d").day
+    month = int(endDate.split("-")[1])
+    year = datetime.strptime(endDate, "%Y-%M-%d").year
+    
     if year > datetime.now().year:
-        return "Please select a valid year."
-    if month > datetime.now().month:
-        return "Please select a valid month."
-    if day > datetime.now().day:
-        return "Please select a valid day."
-    return ""
+        response = "Please select a valid year."
+    if year == datetime.now().year:        
+        if month > datetime.now().month:
+            response = "Please select a valid month."
+        if month == datetime.now().month:
+            if day > datetime.now().day:
+                response = "Please select a valid day."
+
+        
+    if yearPeriod < 0:
+        response = "Please select a valid date"
+    if yearPeriod == 0:
+        if monthPeriod <0:
+            response = "Please select a valid date"
+        if monthPeriod == 0:
+            if dayPeriod < 0 :
+                response = "Please select a valid date"
+
+    return response
+   
 
 
 # # Drawer controls

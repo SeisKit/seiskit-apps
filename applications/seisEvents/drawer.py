@@ -54,6 +54,7 @@ def Create_Drawer()->html.Div:
                         )
 
     webServiceDropDown = html.Div([
+                            #BUG Uyarı drawerın altında kaldığı için gözükmüyor net olarak. 
                             dmc.NotificationsProvider(zIndex=1),
                             html.Div(id="notifications-container"),
                             dmc.Text("Earthquake Web Services",

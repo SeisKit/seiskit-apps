@@ -259,10 +259,10 @@ def GetUSGSEvents(Geom : object  = None, Depth : DepthFilter = None, StartTime :
         url += "mindepth={}&maxdepth={}&".format(Depth.MinDepth,Depth.MaxDepth)
     
     if Magnitude != None:
-        url += "minmagnitude={}&maxmagnitude={}&".format(0,Magnitude.MaxMag)
+        url += "minmagnitude={}&maxmagnitude={}&".format(Magnitude.MinMag,Magnitude.MaxMag)
     
 
-    with request.urlopen(url, timeout=10) as response:
+    with request.urlopen(url, timeout=30) as response:
         if response.getcode() == 200:
             data = response.read()
     data = json.loads(data)
