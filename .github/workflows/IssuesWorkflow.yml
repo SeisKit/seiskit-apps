@@ -1,0 +1,50 @@
+name: Tag Issues
+
+on:
+  issues:
+    types: [opened,reopened]
+
+jobs:
+  tag-issues:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Tag Issue
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const labelsToAdd = [];
+            const issueLabels = context.payload.issue.labels;
+            const issueTitle = context.payload.issue.title;
+            const repo = context.repo;
+            const octokit = new github.getOctokit(process.env.GITHUB_TOKEN);
+
+            // Add specific tags based on conditions
+            if (issueLabels.find(label => label.name == 'bug')) {
+              labelsToAdd.push('needs-review');
+            }
+
+            if (issueTitle.includes('feature')) {
+              labelsToAdd.push('feature-request');
+            }
+
+            // Add the calculated labels to the issue
+            if (labelsToAdd.length > 0) {
+              await octokit.rest.issues.addLabels({
+                owner: repo.owner,
+                repo: repo.repo,
+                issue_number: context.payload.issue.number,
+                labels: labelsToAdd
+              });
+              github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '👋 Thanks for reporting! We will review it as soon as possible'
+            })
+            }
+
+
+            
